@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Time Management - Ubuntu Parental Control{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Time Management</h2>
+    
+    <!-- Time Schedules Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Internet Schedules</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                Add Schedule
+            </button>
+        </div>
+        <div class="card-body">
+            {% if schedules %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Days</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td>{{ schedule.name }}</td>
+                                <td>
+                                    {% set day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+                                    {% for day in schedule.days %}
+                                        {{ day_names[day] }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>{{ schedule.start_time }} - {{ schedule.end_time }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if schedule.is_active else 'secondary' }}">
+                                        {{ 'Active' if schedule.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-schedule" 
+                                            data-id="{{ schedule.id }}">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-schedule" 
+                                            data-id="{{ schedule.id }}">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No schedules configured. Add a schedule to restrict internet access times.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Daily Usage Limit Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Daily Usage Limit</h5>
+        </div>
+        <div class="card-body">
+            <form id="usageLimitForm" method="POST" action="{{ url_for('update_daily_limit') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="dailyLimit" class="form-label">Daily Limit (minutes)</label>
+                        <input type="number" class="form-control" id="dailyLimit" name="limit_minutes"
+                               value="{{ daily_limit.time_limit_minutes if daily_limit else '' }}"
+                               min="0" step="1">
+                        <div class="form-text">Set to 0 to disable daily limit</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="resetTime" class="form-label">Reset Time</label>
+                        <input type="time" class="form-control" id="resetTime" name="reset_time"
+                               value="{{ daily_limit.reset_time if daily_limit else '00:00' }}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+            
+            <!-- Usage Statistics -->
+            <div class="mt-4">
+                <h6>Today's Usage</h6>
+                <div class="progress">
+                    {% set usage_percent = (today_usage / (daily_limit.time_limit_minutes or 1)) * 100 %}
+                    {% set progress_width = [usage_percent|int, 100]|min %}
+                    {% set progress_class = 'success' if usage_percent < 80 else 'warning' if usage_percent < 100 else 'danger' %}
+                    <div class="progress-bar bg-{{ progress_class }}" 
+                         role="progressbar" 
+                         style="width: {{ progress_width }}%" 
+                         aria-valuenow="{{ today_usage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="{{ daily_limit.time_limit_minutes or 1 }}">
+                        {{ today_usage }} / {{ daily_limit.time_limit_minutes if daily_limit else '∞' }} minutes
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Status -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Current Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-{{ 'success' if is_allowed else 'danger' }}">
+                <strong>Internet Access:</strong> {{ 'Allowed' if is_allowed else 'Blocked' }}
+                <br>
+                <small>{{ status_reason }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Schedule Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="scheduleForm" method="POST" action="{{ url_for('add_schedule') }}">
+                <div class="modal-body">
+                    <input type="hidden" id="scheduleId" value="">
+                    <div class="mb-3">
+                        <label for="scheduleName" class="form-label">Schedule Name</label>
+                        <input type="text" class="form-control" id="scheduleName" name="name" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label for="startTime" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="startTime" name="start_time" required>
+                        </div>
+                        <div class="col">
+                            <label for="endTime" class="form-label">End Time</label>
+                            <input type="time" class="form-control" id="endTime" name="end_time" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Days of Week</label>
+                        <div class="form-check">
+                            {% for day in ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input day-checkbox" type="checkbox" 
+                                       id="day{{ loop.index0 }}" name="days" value="{{ ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][loop.index0] }}">
+                                <label class="form-check-label" for="day{{ loop.index0 }}">
+                                    {{ day[:3] }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                        <label class="form-check-label" for="isActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this schedule?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+    
+    // Show add schedule modal
+    $('[data-bs-target="#scheduleModal"]').on('click', function() {
+        $('#scheduleForm')[0].reset();
+        $('.day-checkbox').prop('checked', false);
+        $('#isActive').prop('checked', true);
+        $('.modal-title').text('Add Schedule');
+        scheduleModal.show();
+    });
+    
+    // Edit schedule - for now just show modal (editing functionality can be added later)
+    $('.edit-schedule').on('click', function() {
+        alert('Schedule editing will be available in a future update. For now, please delete and recreate the schedule.');
+    });
+    
+    // Delete schedule - for now just show alert (delete functionality can be added later)
+    $('.delete-schedule').on('click', function() {
+        alert('Schedule deletion will be available in a future update.');
+    });
+    
+    // Form validation
+    $('#scheduleForm').on('submit', function(e) {
+        const selectedDays = $('.day-checkbox:checked').length;
+        if (selectedDays === 0) {
+            e.preventDefault();
+            alert('Please select at least one day of the week.');
+            return false;
+        }
+        
+        const startTime = $('#startTime').val();
+        const endTime = $('#endTime').val();
+        if (startTime >= endTime) {
+            e.preventDefault();
+            alert('End time must be after start time.');
+            return false;
+        }
+    });
+    
+    // Usage limit form validation
+    $('#usageLimitForm').on('submit', function(e) {
+        const limit = parseInt($('#dailyLimit').val());
+        if (isNaN(limit) || limit < 0) {
+            e.preventDefault();
+            alert('Please enter a valid daily limit (0 or greater).');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

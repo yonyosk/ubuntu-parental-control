@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- System Status Cards -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Active Protection</h6>
+                        <h3 class="mb-0">{% if is_protection_active %}<span class="badge bg-success">ON</span>{% else %}<span class="badge bg-danger">OFF</span>{% endif %}</h3>
+                    </div>
+                    <i class="bi bi-shield-check display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Blocked Domains</h6>
+                        <h3 class="mb-0">{{ blocked_count }}</h3>
+                    </div>
+                    <i class="bi bi-shield-lock display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Today's Usage</h6>
+                        <h3 class="mb-0">{{ '%.1f'|format(today_usage/60) }} hrs</h3>
+                    </div>
+                    <i class="bi bi-clock-history display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Daily Limit</h6>
+                        <h3 class="mb-0">{% if daily_limit %}{{ '%.1f'|format(daily_limit/60) }} hrs{% else %}None{% endif %}</h3>
+                    </div>
+                    <i class="bi bi-hourglass-split display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Quick Actions Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Quick Actions</h5>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('blacklists') }}" class="btn btn-outline-primary btn-sm">Manage Blacklists</a>
+                    <a href="{{ url_for('time_management') }}" class="btn btn-outline-primary btn-sm">Time Controls</a>
+                    <a href="{{ url_for('reports') }}" class="btn btn-outline-primary btn-sm">View Reports</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Block Individual Site</h6>
+                        <form method="POST" action="{{ url_for('block_site') }}" class="mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="domain" name="domain" 
+                                       placeholder="example.com" required
+                                       pattern="^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}$"
+                                       title="Please enter a valid domain (e.g., example.com)">
+                                <button type="submit" class="btn btn-primary">Block</button>
+                            </div>
+                            <small class="form-text text-muted">Enter domain without http:// or www</small>
+                        </form>
+                        
+                        <h6 class="mt-4">Block Category</h6>
+                        <form method="POST" action="{{ url_for('block_category') }}" class="mb-3">
+                            <div class="input-group">
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="" disabled selected>Select category...</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category }}">{{ category.replace('_', ' ').title() }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-primary">Block</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Quick Stats</h6>
+                        <div class="list-group">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Active Schedules
+                                <span class="badge bg-primary rounded-pill">{{ active_schedules|length }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Blocked Categories
+                                <span class="badge bg-danger rounded-pill">{{ blocked_categories|length }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Today's Blocks
+                                <span class="badge bg-warning text-dark rounded-pill">{{ today_blocks }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Active Exceptions
+                                <span class="badge bg-info rounded-pill">{{ temp_exceptions|length }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Blocking Server
+                                {% if blocking_server_running %}
+                                <span class="badge bg-success rounded-pill">Running</span>
+                                {% else %}
+                                <span class="badge bg-secondary rounded-pill">Stopped</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Blocking Server Controls -->
+                        <div class="mt-3">
+                            <h6>Blocking Server</h6>
+                            <div class="d-grid gap-2">
+                                {% if blocking_server_running %}
+                                <form method="POST" action="{{ url_for('stop_blocking_server') }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                        <i class="bi bi-stop-circle"></i> Stop Friendly Block Pages
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('start_blocking_server') }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                                        <i class="bi bi-play-circle"></i> Start Friendly Block Pages
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted mt-1 d-block">
+                                When enabled, blocked sites show a friendly message instead of connection errors.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for log in recent_activity %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ log.domain or 'System' }}</h6>
+                            <small class="text-muted">{{ log.timestamp|datetimeformat('%H:%M') }}</small>
+                        </div>
+                        <p class="mb-1">
+                            {% if log.action == 'blocked' %}
+                                <span class="badge bg-danger">Blocked</span>
+                            {% elif log.action == 'allowed' %}
+                                <span class="badge bg-success">Allowed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ log.action|title }}</span>
+                            {% endif %}
+                            {{ log.details.reason or '' }}
+                        </p>
+                        {% if log.category %}
+                        <small class="text-muted">Category: {{ log.category }}</small>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-center text-muted py-4">
+                        No recent activity to display
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer text-end">
+                    <a href="{{ url_for('reports') }}" class="btn btn-sm btn-outline-primary">View All Activity</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Blocked Sites Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Blocked Sites</h5>
+                <span class="badge bg-danger">{{ blocked_sites|length }} Total</span>
+            </div>
+            <div class="card-body p-0">
+                {% if blocked_sites %}
+                <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                    {% for site in blocked_sites|sort(attribute='domain') %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold">{{ site.domain }}</span>
+                            {% if site.category %}
+                            <small class="text-muted">{{ site.category|replace('_', ' ')|title }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-1">
+                            <form method="POST" action="{{ url_for('unblock_site') }}" class="d-flex gap-1">
+                                <input type="hidden" name="domain" value="{{ site.domain }}">
+                                <input type="number" name="duration" class="form-control form-control-sm"
+                                       style="width: 60px;" value="30" min="1" max="1440" required>
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Temporarily unblock">
+                                    <i class="bi bi-unlock"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('remove_blocked_site') }}">
+                                <input type="hidden" name="domain" value="{{ site.domain }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                        title="Permanently remove from blocked list"
+                                        onclick="return confirm('Permanently remove {{ site.domain }} from blocked list?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="bi bi-shield-check display-4 d-block mb-2"></i>
+                    <p>No sites are currently blocked</p>
+                </div>
+                {% endif %}
+                <div class="card-footer">
+                <!-- Add Blocked Site Form -->
+                <form method="POST" action="{{ url_for('add_blocked_site') }}" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col">
+                            <input type="text" name="domain" class="form-control form-control-sm" 
+                                   placeholder="Enter domain or URL to block" required>
+                        </div>
+                        <div class="col-auto">
+                            <select name="category" class="form-select form-select-sm">
+                                <option value="MANUAL">Manual</option>
+                                <option value="SOCIAL_MEDIA">Social Media</option>
+                                <option value="VIDEO">Video</option>
+                                <option value="GAMING">Gaming</option>
+                                <option value="NEWS">News</option>
+                                <option value="SHOPPING">Shopping</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-plus-circle"></i> Block
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Examples: youtube.com, https://facebook.com, www.example.com
+                    </small>
+                </form>
+                <form method="POST" action="{{ url_for('unblock_all_sites') }}" class="d-grid gap-2">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Remove all manually blocked sites?')">
+                        <i class="bi bi-trash"></i> Clear All Blocks
+                    </button>
+                </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Schedules Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Active Schedules</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if active_schedules %}
+                <div class="list-group list-group-flush">
+                    {% for schedule in active_schedules %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ schedule.name or 'Untitled Schedule' }}</h6>
+                            <span class="badge {% if schedule|is_schedule_active_now %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if schedule|is_schedule_active_now %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            {{ schedule.days|join(', ') }} • {{ schedule.start_time }} - {{ schedule.end_time }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="bi bi-calendar-x display-4 d-block mb-2"></i>
+                    <p>No active schedules</p>
+                    <a href="{{ url_for('time_management') }}" class="btn btn-sm btn-outline-primary">
+                        Create Schedule
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Temporary Exceptions Modal -->
+<div class="modal fade" id="tempExceptionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Temporary Exceptions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if temp_exceptions %}
+                <div class="list-group">
+                    {% for exception in temp_exceptions %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ exception.domain }}</span>
+                        <span class="badge bg-info">Expires {{ exception.expiry_time|datetimeformat('%H:%M') }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">No active exceptions</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Help Modal -->
+<div class="modal fade" id="quickHelpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Blocking Sites</h6>
+                        <ul>
+                            <li>Enter a domain to block individual sites</li>
+                            <li>Use categories to block groups of related sites</li>
+                            <li>View blocked sites in the right panel</li>
+                        </ul>
+                        
+                        <h6 class="mt-4">Time Management</h6>
+                        <ul>
+                            <li>Set daily usage limits</li>
+                            <li>Create schedules for allowed internet hours</li>
+                            <li>View active schedules in the right panel</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Reports</h6>
+                        <ul>
+                            <li>View detailed activity logs</li>
+                            <li>Track internet usage over time</li>
+                            <li>Export reports for record keeping</li>
+                        </ul>
+                        
+                        <h6 class="mt-4">Temporary Exceptions</h6>
+                        <ul>
+                            <li>Temporarily unblock sites as needed</li>
+                            <li>Set duration in minutes</li>
+                            <li>View active exceptions in the modal</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('help') }}" class="btn btn-outline-primary">View Full Documentation</a>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Show welcome message for first-time users
+$(document).ready(function() {
+    // Check if this is the first visit
+    if (!localStorage.getItem('hasSeenWelcome')) {
+        var welcomeModal = new bootstrap.Modal(document.getElementById('quickHelpModal'));
+        welcomeModal.show();
+        localStorage.setItem('hasSeenWelcome', 'true');
+    }
+    
+    // Update the clock every second
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        const dateString = now.toLocaleDateString(undefined, { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        $('.current-time').text(timeString);
+        $('.current-date').text(dateString);
+    }
+    
+    // Update immediately and then every second
+    updateClock();
+    setInterval(updateClock, 1000);
+});
+</script>
+{% endblock %}

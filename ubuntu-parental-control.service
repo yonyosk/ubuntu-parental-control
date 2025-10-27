@@ -1,0 +1,36 @@
+[Unit]
+Description=Ubuntu Parental Control Service
+Documentation=https://github.com/YOUR_USERNAME/ubuntu-parental-control
+After=network.target
+Wants=network.target
+
+[Service]
+Type=forking
+User=root
+Group=root
+WorkingDirectory=/opt/ubuntu-parental-control
+ExecStart=/opt/ubuntu-parental-control/start_service.sh
+ExecStop=/opt/ubuntu-parental-control/stop_service.sh
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+
+# Environment
+Environment=PYTHONPATH=/opt/ubuntu-parental-control/src
+Environment=PARENTAL_CONTROL_CONFIG=/var/lib/ubuntu-parental/control.json
+
+# Security settings
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=false
+ProtectHome=false
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ubuntu-parental-control
+
+[Install]
+WantedBy=multi-user.target

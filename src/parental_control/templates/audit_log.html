@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>System Audit Log</h2>
+    <div class="log-container">
+        <pre>
+        {% for entry in log_entries %}
+{{ entry | safe }}
+        {% endfor %}
+        </pre>
+    </div>
+</div>
+{% endblock %}

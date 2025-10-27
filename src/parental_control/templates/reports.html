@@ -1,0 +1,714 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Ubuntu Parental Control{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2>Activity Reports</h2>
+    
+    <!-- Date Range Picker -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filter Reports</h5>
+        </div>
+        <div class="card-body">
+            <form id="reportFilterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="actionFilter" class="form-label">Action</label>
+                    <select class="form-select" id="actionFilter">
+                        <option value="">All Actions</option>
+                        <option value="allowed">Allowed</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="domainFilter" class="form-label">Domain</label>
+                    <input type="text" class="form-control" id="domainFilter" placeholder="Filter by domain">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <button type="button" id="exportCsv" class="btn btn-outline-secondary">
+                        <i class="bi bi-download"></i> Export to CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Usage</h5>
+                    <h2 id="totalUsage">0</h2>
+                    <p class="card-text">minutes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Domains Visited</h5>
+                    <h2 id="totalDomains">0</h2>
+                    <p class="card-text">unique domains</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Blocks</h5>
+                    <h2 id="totalBlocks">0</h2>
+                    <p class="card-text">access attempts blocked</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="reportsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" 
+                    data-bs-target="#activity" type="button" role="tab">
+                Activity Log
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="usage-tab" data-bs-toggle="tab" 
+                    data-bs-target="#usage" type="button" role="tab">
+                Usage Statistics
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="blocked-tab" data-bs-toggle="tab" 
+                    data-bs-target="#blocked" type="button" role="tab">
+                Blocked Domains
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Tab Content -->
+    <div class="tab-content p-3 border border-top-0 rounded-bottom" id="reportsTabsContent">
+        <!-- Activity Log Tab -->
+        <div class="tab-pane fade show active" id="activity" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="activityTable">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Domain</th>
+                            <th>Action</th>
+                            <th>Category</th>
+                            <th>Client IP</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                        <!-- Filled by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <nav aria-label="Activity log pagination">
+                <ul class="pagination justify-content-center" id="activityPagination">
+                    <!-- Filled by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+        
+        <!-- Usage Statistics Tab -->
+        <div class="tab-pane fade" id="usage" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Daily Usage</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="usageChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Most Active Days</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="topDaysList">
+                                <!-- Filled by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Blocked Domains Tab -->
+        <div class="tab-pane fade" id="blocked" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Most Blocked Domains</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="blockedChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Blocked Domains List</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="blockedDomainsList">
+                                <!-- Filled by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="position-fixed top-50 start-50 translate-middle" id="loadingSpinner" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Global variables
+let currentPage = 1;
+const itemsPerPage = 20;
+let activityChart = null;
+let blockedChart = null;
+
+// Initialize the page
+$(document).ready(function() {
+    // Set default date range (last 7 days)
+    const today = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    
+    $('#endDate').val(today.toISOString().split('T')[0]);
+    $('#startDate').val(weekAgo.toISOString().split('T')[0]);
+    
+    // Load initial data
+    loadReportData();
+    
+    // Form submission handler
+    $('#reportFilterForm').on('submit', function(e) {
+        e.preventDefault();
+        currentPage = 1; // Reset to first page on new filter
+        loadReportData();
+    });
+    
+    // Export to CSV handler
+    $('#exportCsv').on('click', function() {
+        exportToCsv();
+    });
+});
+
+// Load report data based on current filters
+function loadReportData() {
+    showLoading(true);
+    
+    const filters = {
+        start_date: $('#startDate').val(),
+        end_date: $('#endDate').val(),
+        action: $('#actionFilter').val(),
+        domain: $('#domainFilter').val(),
+        page: currentPage,
+        limit: itemsPerPage
+    };
+    
+    // Load activity logs
+    $.get('/api/reports/activity', filters)
+        .done(function(data) {
+            updateActivityTable(data.logs);
+            updatePagination(data.total, data.page, data.pages);
+        })
+        .fail(handleAjaxError);
+    
+    // Load summary statistics
+    $.get('/api/reports/summary', {
+        start_date: filters.start_date,
+        end_date: filters.end_date
+    })
+    .done(updateSummaryCards)
+    .fail(handleAjaxError);
+    
+    // Load usage statistics
+    $.get('/api/reports/usage', {
+        start_date: filters.start_date,
+        end_date: filters.end_date
+    })
+    .done(updateUsageCharts)
+    .fail(handleAjaxError);
+    
+    // Load blocked domains
+    $.get('/api/reports/blocked', {
+        start_date: filters.start_date,
+        end_date: filters.end_date
+    })
+    .done(updateBlockedDomains)
+    .fail(handleAjaxError);
+}
+
+// Update activity table with data
+function updateActivityTable(logs) {
+    const $tbody = $('#activityTableBody');
+    $tbody.empty();
+    
+    if (logs.length === 0) {
+        $tbody.append('<tr><td colspan="6" class="text-center">No activity found for the selected filters</td></tr>');
+        return;
+    }
+    
+    logs.forEach(function(log) {
+        const details = log.details ? JSON.stringify(log.details) : '';
+        const row = `
+            <tr>
+                <td>${formatDateTime(log.timestamp)}</td>
+                <td>${escapeHtml(log.domain || 'N/A')}</td>
+                <td><span class="badge bg-${log.action === 'allowed' ? 'success' : 'danger'}">
+                    ${log.action || 'N/A'}
+                </span></td>
+                <td>${escapeHtml(log.category || 'N/A')}</td>
+                <td>${escapeHtml(log.client_ip || 'N/A')}</td>
+                <td>${details ? `<a href="#" class="details-link" data-details='${escapeHtml(details)}'>View</a>` : 'N/A'}</td>
+            </tr>
+        `;
+        $tbody.append(row);
+    });
+    
+    // Add click handler for details links
+    $('.details-link').on('click', function(e) {
+        e.preventDefault();
+        const details = JSON.parse($(this).data('details'));
+        showDetailsModal(details);
+    });
+}
+
+// Update pagination controls
+function updatePagination(totalItems, currentPage, totalPages) {
+    const $pagination = $('#activityPagination');
+    $pagination.empty();
+    
+    if (totalPages <= 1) return;
+    
+    // Previous button
+    const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+    $pagination.append(`
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+    `);
+    
+    // Page numbers
+    const maxPages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+        startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    if (startPage > 1) {
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`);
+        if (startPage > 2) {
+            $pagination.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === currentPage ? 'active' : '';
+        $pagination.append(`<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            $pagination.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`);
+    }
+    
+    // Next button
+    const nextDisabled = currentPage >= totalPages ? 'disabled' : '';
+    $pagination.append(`
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    `);
+    
+    // Add click handlers
+    $('.page-link[data-page]').on('click', function(e) {
+        e.preventDefault();
+        const page = parseInt($(this).data('page'));
+        if (page >= 1 && page <= totalPages && page !== currentPage) {
+            currentPage = page;
+            loadReportData();
+            // Scroll to top of table
+            $('html, body').animate({
+                scrollTop: $('#activity').offset().top - 20
+            }, 300);
+        }
+    });
+}
+
+// Update summary cards
+function updateSummaryCards(summary) {
+    $('#totalUsage').text(summary.total_usage_minutes || 0);
+    $('#totalDomains').text(summary.total_domains_accessed || 0);
+    $('#totalBlocks').text(summary.total_blocks || 0);
+    
+    // Update top days list
+    const $topDaysList = $('#topDaysList');
+    $topDaysList.empty();
+    
+    if (summary.top_active_days && summary.top_active_days.length > 0) {
+        summary.top_active_days.forEach(function(day) {
+            $topDaysList.append(`
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>${formatDate(day.date)}</span>
+                    <span class="badge bg-primary rounded-pill">${day.domains} visits</span>
+                </div>
+            `);
+        });
+    } else {
+        $topDaysList.append('<p class="text-muted">No data available</p>');
+    }
+}
+
+// Update usage charts
+function updateUsageCharts(stats) {
+    // Destroy existing charts if they exist
+    if (activityChart) {
+        activityChart.destroy();
+    }
+    
+    if (blockedChart) {
+        blockedChart.destroy();
+    }
+    
+    // Create daily usage chart
+    const ctx1 = document.getElementById('usageChart').getContext('2d');
+    activityChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: stats.daily_stats.map(day => formatDate(day.date)),
+            datasets: [{
+                label: 'Minutes Used',
+                data: stats.daily_stats.map(day => day.total_usage || 0),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                fill: true,
+                backgroundColor: 'rgba(75, 192, 192, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Daily Internet Usage'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Minutes: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Minutes'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Create blocked domains chart
+    const ctx2 = document.getElementById('blockedChart').getContext('2d');
+    blockedChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: stats.top_blocked_domains.map(d => d.domain),
+            datasets: [{
+                label: 'Number of Blocks',
+                data: stats.top_blocked_domains.map(d => d.count),
+                backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Most Blocked Domains'
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Blocks'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Update blocked domains list
+    const $blockedList = $('#blockedDomainsList');
+    $blockedList.empty();
+    
+    if (stats.top_blocked_domains && stats.top_blocked_domains.length > 0) {
+        stats.top_blocked_domains.forEach(function(domain) {
+            $blockedList.append(`
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-truncate" title="${escapeHtml(domain.domain)}">
+                        ${escapeHtml(domain.domain)}
+                    </span>
+                    <span class="badge bg-danger rounded-pill">${domain.count}</span>
+                </div>
+            `);
+        });
+    } else {
+        $blockedList.append('<p class="text-muted">No blocked domains found</p>');
+    }
+}
+
+// Export data to CSV
+function exportToCsv() {
+    const filters = {
+        start_date: $('#startDate').val(),
+        end_date: $('#endDate').val(),
+        action: $('#actionFilter').val(),
+        domain: $('#domainFilter').val(),
+        limit: 10000  // Max rows to export
+    };
+    
+    // Build query string
+    const query = Object.entries(filters)
+        .filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        .join('&');
+    
+    // Trigger download
+    window.location.href = `/api/reports/export?${query}`;
+}
+
+// Show details modal
+function showDetailsModal(details) {
+    // Create a simple modal to display the details
+    const modalHtml = `
+        <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Activity Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre>${JSON.stringify(details, null, 2)}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    $('#detailsModal').remove();
+    
+    // Add new modal to body and show it
+    $('body').append(modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    modal.show();
+}
+
+// Show/hide loading spinner
+function showLoading(show) {
+    if (show) {
+        $('#loadingSpinner').show();
+    } else {
+        $('#loadingSpinner').hide();
+    }
+}
+
+// Handle AJAX errors
+function handleAjaxError(xhr, status, error) {
+    console.error('AJAX Error:', status, error);
+    showLoading(false);
+    
+    let errorMessage = 'An error occurred while loading data.';
+    if (xhr.responseJSON && xhr.responseJSON.message) {
+        errorMessage = xhr.responseJSON.message;
+    }
+    
+    // Show error toast
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-danger" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    ${escapeHtml(errorMessage)}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    const $toast = $(toastHtml);
+    $('.toast-container').append($toast);
+    
+    const toast = new bootstrap.Toast($toast[0], {
+        autohide: true,
+        delay: 5000
+    });
+    
+    toast.show();
+    
+    // Remove toast after it's hidden
+    $toast.on('hidden.bs.toast', function() {
+        $toast.remove();
+    });
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+}
+
+// Helper function to format date and time
+function formatDateTime(datetimeString) {
+    if (!datetimeString) return 'N/A';
+    const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    return new Date(datetimeString).toLocaleString(undefined, options);
+}
+
+// Helper function to escape HTML
+function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
+
+<style>
+/* Add some custom styles */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1100;
+    min-width: 300px;
+}
+
+#loadingSpinner {
+    z-index: 1200;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 20px;
+    border-radius: 50%;
+}
+
+.details-link {
+    cursor: pointer;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.details-link:hover {
+    text-decoration: underline;
+}
+
+/* Make sure tables are responsive */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Style for the tab content */
+.tab-content {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    padding: 20px;
+}
+
+/* Style for the summary cards */
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Style for the pagination */
+.pagination {
+    margin-top: 1rem;
+}
+
+/* Style for the filter form */
+#reportFilterForm {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %}

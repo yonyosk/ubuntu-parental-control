@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4>DNS Configuration</h4>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.category or 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="mb-4">
+                    <h5>Current DNS Settings</h5>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            {% if current_settings %}
+                                <p><strong>Type:</strong> {{ current_settings.dns_type|title }}</p>
+                                <p><strong>Primary DNS:</strong> {{ current_settings.primary_dns }}</p>
+                                {% if current_settings.secondary_dns %}
+                                    <p><strong>Secondary DNS:</strong> {{ current_settings.secondary_dns }}</p>
+                                {% endif %}
+                                <p class="text-muted small">Last updated: {{ current_settings.updated_at }}</p>
+                            {% else %}
+                                <p class="text-muted">No DNS settings configured.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5>Configure DNS</h5>
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="nav nav-tabs mb-3" id="dnsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="opendns-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#opendns" type="button" role="tab">
+                                        OpenDNS FamilyShield
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="custom-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#custom" type="button" role="tab">
+                                        Custom DNS
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="system-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#system" type="button" role="tab">
+                                        System Default (DHCP)
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dnsTabsContent">
+                                <!-- OpenDNS Tab -->
+                                <div class="tab-pane fade show active" id="opendns" role="tabpanel">
+                                    <p>OpenDNS FamilyShield provides pre-configured parental controls by blocking websites in categories like pornography, proxy/anonymizer, and more.</p>
+                                    <p><strong>Primary DNS:</strong> 208.67.222.123</p>
+                                    <p><strong>Secondary DNS:</strong> 208.67.220.123</p>
+                                    <form method="POST" action="{{ url_for('update_dns_settings') }}">
+                                        <input type="hidden" name="dns_type" value="opendns">
+                                        <input type="hidden" name="primary_dns" value="208.67.222.123">
+                                        <input type="hidden" name="secondary_dns" value="208.67.220.123">
+                                        <button type="submit" class="btn btn-primary">Use OpenDNS FamilyShield</button>
+                                    </form>
+                                </div>
+
+                                <!-- Custom DNS Tab -->
+                                <div class="tab-pane fade" id="custom" role="tabpanel">
+                                    <form method="POST" action="{{ url_for('update_dns_settings') }}">
+                                        <input type="hidden" name="dns_type" value="custom">
+                                        <div class="mb-3">
+                                            <label for="primary_dns" class="form-label">Primary DNS Server</label>
+                                            <input type="text" class="form-control" id="primary_dns" name="primary_dns" 
+                                                   placeholder="e.g., 1.1.1.1" required
+                                                   pattern="^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondary_dns" class="form-label">Secondary DNS Server (Optional)</label>
+                                            <input type="text" class="form-control" id="secondary_dns" name="secondary_dns" 
+                                                   placeholder="e.g., 1.0.0.1"
+                                                   pattern="^(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?$">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Custom DNS</button>
+                                    </form>
+                                </div>
+
+                                <!-- System Default Tab -->
+                                <div class="tab-pane fade" id="system" role="tabpanel">
+                                    <p>Use the system's default DNS settings (usually obtained via DHCP).</p>
+                                    <form method="POST" action="{{ url_for('update_dns_settings') }}">
+                                        <input type="hidden" name="dns_type" value="system">
+                                        <input type="hidden" name="primary_dns" value="">
+                                        <button type="submit" class="btn btn-warning">Reset to System Default</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <h6>About DNS Settings</h6>
+                    <p>Changing DNS settings affects how your computer resolves domain names to IP addresses. The OpenDNS FamilyShield option provides built-in content filtering.</p>
+                    <p class="mb-0"><strong>Note:</strong> Changing DNS settings requires administrator privileges and may temporarily interrupt your internet connection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add client-side validation for IP addresses
+const primaryDnsInput = document.getElementById('primary_dns');
+const secondaryDnsInput = document.getElementById('secondary_dns');
+const customForm = document.querySelector('#custom form');
+
+function validateIpAddress(ip) {
+    if (!ip) return true; // Allow empty for secondary DNS
+    const pattern = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+    if (!pattern.test(ip)) return false;
+    
+    const parts = ip.split('.').map(Number);
+    return parts.every(part => part >= 0 && part <= 255);
+}
+
+if (customForm) {
+    customForm.addEventListener('submit', function(e) {
+        const primaryIp = primaryDnsInput.value.trim();
+        const secondaryIp = secondaryDnsInput.value.trim();
+        
+        if (!validateIpAddress(primaryIp)) {
+            e.preventDefault();
+            alert('Please enter a valid primary DNS IP address (e.g., 8.8.8.8)');
+            primaryDnsInput.focus();
+            return false;
+        }
+        
+        if (secondaryIp && !validateIpAddress(secondaryIp)) {
+            e.preventDefault();
+            alert('Please enter a valid secondary DNS IP address or leave it blank');
+            secondaryDnsInput.focus();
+            return false;
+        }
+        
+        return true;
+    });
+}
+</script>
+{% endblock %}

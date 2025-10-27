@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Content Filtering Categories</h4>
+                <form method="POST" action="{{ url_for('blacklists') }}" class="mb-0">
+                    <button type="submit" name="update_blacklists" class="btn btn-primary" id="updateBlacklistsBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" id="updateSpinner"></span>
+                        Update Selected Categories
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    Select the categories of websites you want to block. When you click "Update Selected Categories",
+                    the system will download the latest blocklists and apply them.
+                </div>
+
+                <form method="POST" action="{{ url_for('blacklists') }}" id="blacklistForm">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Last Updated</th>
+                                    <th class="text-end">Domains</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in available_categories %}
+                                    {% set is_active = category.name in active_category_names %}
+                                    <tr class="{% if is_active %}table-active{% endif %}">
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input category-checkbox" type="checkbox" 
+                                                       name="categories" value="{{ category.name }}" 
+                                                       id="cat-{{ loop.index }}" 
+                                                       {% if is_active %}checked{% endif %}>
+                                                <label class="form-check-label" for="cat-{{ loop.index }}">
+                                                    &nbsp;
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <label class="form-check-label fw-bold" for="cat-{{ loop.index }}">
+                                                {{ category.name|replace('_', ' ')|title }}
+                                            </label>
+                                        </td>
+                                        <td>{{ category.description }}</td>
+                                        <td>
+                                            {% if category.last_updated %}
+                                                {{ category.last_updated|datetimeformat }}
+                                            {% else %}
+                                                <span class="text-muted">Never</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if category.domain_count %}
+                                                <a href="{{ url_for('blacklist_domains', category=category.name) }}" 
+                                                   class="badge bg-primary rounded-pill text-decoration-none"
+                                                   title="View domains in {{ category.name }} category">
+                                                    {{ "{:,}".format(category.domain_count) }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">0</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <a href="{{ url_for('blacklists') }}" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </a>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="selectAllSwitch">
+                            <label class="form-check-label" for="selectAllSwitch">Select All</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Category Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Active Categories</h6>
+                        <ul class="list-group mb-4">
+                            {% for category in active_categories %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ url_for('blacklist_domains', category=category.name) }}" 
+                                       class="text-decoration-none">
+                                        {{ category.name|replace('_', ' ')|title }}
+                                    </a>
+                                    <a href="{{ url_for('blacklist_domains', category=category.name) }}" 
+                                       class="badge bg-primary rounded-pill text-decoration-none"
+                                       title="View domains">
+                                        {{ "{:,}".format(category.domain_count) if category.domain_count else '0' }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="list-group-item text-muted">No active categories</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statistics</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Total Blocked Domains
+                                <span class="badge bg-primary rounded-pill">{{ "{:,}".format(total_domains) }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Active Categories
+                                <span class="badge bg-primary rounded-pill">{{ active_categories|length }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Last Updated
+                                <span>{{ last_updated|datetimeformat if last_updated else 'Never' }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Handle select all checkbox
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    // Update select all checkbox state when individual checkboxes change
+    const checkboxes = document.querySelectorAll('.category-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            document.getElementById('selectAll').checked = allChecked;
+        });
+    });
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all checkboxes when "Select All" is clicked
+    const selectAllSwitch = document.getElementById('selectAllSwitch');
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][name="categories"]');
+    
+    selectAllSwitch.addEventListener('change', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllSwitch.checked;
+        });
+    });
+    
+    // Update select all switch when individual checkboxes change
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(checkboxes).every(c => c.checked);
+            selectAllSwitch.checked = allChecked;
+        });
+    });
+    
+    // Show spinner when updating blacklists
+    const updateBtn = document.getElementById('updateBlacklistsBtn');
+    const updateSpinner = document.getElementById('updateSpinner');
+    
+    if (updateBtn) {
+        updateBtn.addEventListener('click', function() {
+            updateSpinner.classList.remove('d-none');
+            updateBtn.disabled = true;
+            
+            // Disable the button for 5 seconds to prevent rapid clicks
+            setTimeout(() => {
+                updateSpinner.classList.add('d-none');
+                updateBtn.disabled = false;
+            }, 5000);
+        });
+    }
+});
+</script>
+{% endblock %}

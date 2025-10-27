@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <!-- Category Header -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">{{ category|replace('_', ' ')|title }} Category</h4>
+                    <small class="text-muted">{{ category_info.description }}</small>
+                </div>
+                <a href="{{ url_for('blacklists') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Categories
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-primary">{{ "{:,}".format(total_domains) }}</h5>
+                            <small class="text-muted">Total Domains</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            {% if category_info.is_active %}
+                                <h5 class="text-success">Active</h5>
+                            {% else %}
+                                <h5 class="text-warning">Inactive</h5>
+                            {% endif %}
+                            <small class="text-muted">Status</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>{{ category_info.last_updated|datetimeformat if category_info.last_updated != 'Never' else 'Never' }}</h5>
+                            <small class="text-muted">Last Updated</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            {% if not category_info.is_active and total_domains == 0 %}
+                                <form method="POST" action="{{ url_for('blacklists') }}" style="display: inline;">
+                                    <input type="hidden" name="categories" value="{{ category }}">
+                                    <button type="submit" name="update_blacklists" class="btn btn-sm btn-primary">
+                                        Download
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="text-success">
+                                    <i class="bi bi-check-circle"></i> Downloaded
+                                </span>
+                            {% endif %}
+                            <br><small class="text-muted">Action</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Domains List -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Blocked Domains</h5>
+                {% if total_domains > 0 %}
+                    <span class="badge bg-primary">
+                        Showing {{ domains|length }} of {{ "{:,}".format(total_domains) }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if total_domains == 0 %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No domains available</h5>
+                        <p class="text-muted">
+                            This category hasn't been downloaded yet. Click the "Download" button above to fetch the latest blocklist.
+                        </p>
+                    </div>
+                {% else %}
+                    <!-- Search Box -->
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="domainSearch" placeholder="Search domains...">
+                    </div>
+                    
+                    <!-- Domains Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">#</th>
+                                    <th>Domain</th>
+                                    <th style="width: 100px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="domainsTableBody">
+                                {% for domain in domains %}
+                                    <tr class="domain-row">
+                                        <td>{{ loop.index + (current_page_num - 1) * 100 }}</td>
+                                        <td class="domain-name">
+                                            <code>{{ domain }}</code>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="copyDomain('{{ domain }}')" 
+                                                    title="Copy domain">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if total_pages > 1 %}
+                        <nav aria-label="Domains pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if current_page_num > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('blacklist_domains', category=category, page=current_page_num-1) }}">
+                                            Previous
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page_num in range(1, total_pages + 1) %}
+                                    {% if page_num == current_page_num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% elif page_num <= 3 or page_num > total_pages - 3 or (page_num >= current_page_num - 1 and page_num <= current_page_num + 1) %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('blacklist_domains', category=category, page=page_num) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% elif page_num == 4 or page_num == total_pages - 3 %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if current_page_num < total_pages %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('blacklist_domains', category=category, page=current_page_num+1) }}">
+                                            Next
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Domain search functionality
+    document.getElementById('domainSearch').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.domain-row');
+        
+        rows.forEach(row => {
+            const domainName = row.querySelector('.domain-name').textContent.toLowerCase();
+            if (domainName.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    // Copy domain to clipboard
+    function copyDomain(domain) {
+        navigator.clipboard.writeText(domain).then(function() {
+            // Show a temporary success message
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-check"></i>';
+            button.classList.remove('btn-outline-primary');
+            button.classList.add('btn-success');
+            
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-primary');
+            }, 1000);
+        }).catch(function(err) {
+            console.error('Could not copy domain: ', err);
+        });
+    }
+</script>
+{% endblock %}

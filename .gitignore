@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+src/venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+*.log.*
+logs/
+*.debhelper.log
+
+# Database files (runtime data)
+*.db
+*.sqlite
+*.sqlite3
+control.json
+flask_secret.key
+
+# Backup and build artifacts
+backup/
+debian/
+*.deb
+*.tar.gz
+*.zip
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+temp/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Project-specific - Development/Debugging files
+trace_login_flow.py
+repair_database.py
+cluade.md
+GITHUB_UPLOAD_CHECKLIST.md
+src/parental_control/migrate_database.py
+*.backup
+*.bak
+*~
+
+# Runtime directories
+/var/
+*.pid
