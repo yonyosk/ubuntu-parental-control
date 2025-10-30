@@ -3,6 +3,8 @@
 ## Overview
 Ubuntu Parental Control is a comprehensive web-based application that allows parents to manage and monitor internet access for their children. With an intuitive interface and powerful features, it helps create a safer online environment for families.
 
+> **Note**: A Windows version is currently in development. See the [Windows Port Documentation](docs/windows-port/) for details.
+
 ## Key Features
 
 ### Content Filtering
@@ -253,11 +255,37 @@ Configure log rotation in `/etc/logrotate.d/ubuntu-parental`:
 }
 ```
 
-## API Documentation
+## Documentation
+
+### Project Documentation
+
+This project includes comprehensive documentation for various aspects:
+
+#### Core Documentation
+- **[User Guide](docs/user/)** - Installation and usage instructions
+- **[API Documentation](docs/api/)** - RESTful API reference
+
+#### Platform-Specific Documentation
+- **[Windows Port](docs/windows-port/)** - Windows version development
+  - [Product Requirements Document (PRD)](docs/windows-port/PRD.md) - Complete product specification
+  - [Architecture Document](docs/windows-port/ARCHITECTURE.md) - Technical architecture and design
+  - [Task List](docs/windows-port/TASK_LIST.md) - Development roadmap and tasks
+
+#### Feature Documentation
+- **[Blocking Page Feature](docs/features/blocking-page/)** - Custom blocking page implementation
+  - [Project Overview](docs/features/blocking-page/01_project_overview.md)
+  - [Technical Architecture](docs/features/blocking-page/02_technical_architecture.md)
+  - [Design Specifications](docs/features/blocking-page/03_design_specifications.md)
+  - [Development Roadmap](docs/features/blocking-page/04_development_roadmap.md)
+  - [Database Schema](docs/features/blocking-page/05_database_schema.md)
+  - [Risk Mitigation](docs/features/blocking-page/06_risk_mitigation.md)
+
+### API Documentation
 
 The web interface provides a RESTful API for programmatic access. API documentation is available at `/api/docs` when the application is running.
 
-### Example: Get Current Usage
+#### Example: Get Current Usage
+
 ```bash
 curl -H "Authorization: Bearer YOUR_API_TOKEN" \
      https://localhost:5000/api/time/usage

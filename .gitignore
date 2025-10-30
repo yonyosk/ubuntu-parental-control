@@ -81,3 +81,45 @@ src/parental_control/migrate_database.py
 # Runtime directories
 /var/
 *.pid
+
+# Windows-specific files
+*.exe
+*.msi
+*.dll
+*.pyd
+desktop.ini
+$RECYCLE.BIN/
+
+# Windows installer artifacts (WiX)
+*.wixobj
+*.wixpdb
+
+# Security - sensitive files
+*.key
+*.pfx
+*.p12
+*.pem
+secrets.json
+credentials.json
+.env
+.env.local
+
+# Code signing certificates
+codesign.*
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+site/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# PyInstaller
+*.spec
+
+# Keep specification documents
+!docs/
