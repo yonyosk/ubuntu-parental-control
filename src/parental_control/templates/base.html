@@ -44,9 +44,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if current_page == 'blacklists' %}active{% endif %}" 
+                        <a class="nav-link {% if current_page == 'categories' %}active{% endif %}"
+                           href="{{ url_for('categories') }}">
+                            <i class="bi bi-shield-lock me-1"></i>Category Blocking
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if current_page == 'blacklists' %}active{% endif %}"
                            href="{{ url_for('blacklists') }}">
-                            <i class="bi bi-shield-lock me-1"></i>Content Filtering
+                            <i class="bi bi-list-check me-1"></i>Legacy Filtering
                         </a>
                     </li>
                     <li class="nav-item">
