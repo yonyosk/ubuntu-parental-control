@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-shield-lock me-2"></i>Category Management</h1>
+            <p class="text-muted">Manage content filtering categories with clear visual indicators and easy controls.</p>
+        </div>
+    </div>
+
+    <!-- Statistics Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-collection me-2"></i>Total Categories</h5>
+                    <h2 class="mb-0" id="stats-total">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-shield-fill-x me-2"></i>Currently Blocked</h5>
+                    <h2 class="mb-0 text-danger" id="stats-blocked">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-globe2 me-2"></i>Total Blocked Domains</h5>
+                    <h2 class="mb-0 text-success" id="stats-domains">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="btn-group" role="group" aria-label="Category filters">
+                        <button type="button" class="btn btn-outline-primary active" data-filter="all">
+                            All (<span id="count-all">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-filter="blocked">
+                            Blocked (<span id="count-blocked">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-success" data-filter="allowed">
+                            Allowed (<span id="count-allowed">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" data-filter="not-downloaded">
+                            Not Downloaded (<span id="count-not-downloaded">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-info" data-filter="needs-update">
+                            Needs Update (<span id="count-needs-update">0</span>)
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="search-box" placeholder="Search categories...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-lightning me-2"></i>Bulk Actions</h5>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-danger" id="btn-block-all">
+                    <i class="bi bi-shield-fill-x me-1"></i>Block All
+                </button>
+                <button type="button" class="btn btn-success" id="btn-unblock-all">
+                    <i class="bi bi-shield-fill-check me-1"></i>Unblock All
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-download-all">
+                    <i class="bi bi-download me-1"></i>Download All Not Downloaded
+                </button>
+                <button type="button" class="btn btn-warning" id="btn-update-outdated">
+                    <i class="bi bi-arrow-repeat me-1"></i>Update All Outdated
+                </button>
+                <button type="button" class="btn btn-info" id="btn-update-all-ut1">
+                    <i class="bi bi-cloud-download me-1"></i>Update All UT1
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Grid -->
+    <div class="row" id="category-grid">
+        <!-- Categories will be loaded here dynamically -->
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="text-center my-5" id="loading-spinner">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading categories...</p>
+    </div>
+</div>
+
+<!-- Category Card Template -->
+<template id="category-card-template">
+    <div class="col-md-6 col-lg-4 category-card-wrapper" data-category-id="">
+        <div class="card h-100 category-card">
+            <!-- Status Badge -->
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="badge status-badge">ALLOWED</span>
+                <span class="badge source-badge">UT1</span>
+            </div>
+
+            <div class="card-body">
+                <!-- Category Info -->
+                <h5 class="card-title">
+                    <span class="category-icon me-2">📁</span>
+                    <span class="category-name"></span>
+                </h5>
+
+                <!-- Stats / Status Line -->
+                <p class="card-text text-muted category-stats">
+                    <small></small>
+                </p>
+
+                <!-- Description -->
+                <p class="card-text category-description"></p>
+
+                <!-- Progress Bar (for downloading) -->
+                <div class="progress mb-3 d-none category-progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <!-- Toggle Switch -->
+                    <div class="form-check form-switch category-toggle-wrapper">
+                        <input class="form-check-input category-toggle" type="checkbox" role="switch">
+                        <label class="form-check-label toggle-label">Block</label>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary btn-view-urls">
+                            <i class="bi bi-list-ul"></i> View URLs
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning btn-update d-none">
+                            <i class="bi bi-arrow-repeat"></i> Update
+                        </button>
+                        <button class="btn btn-sm btn-primary btn-download d-none">
+                            <i class="bi bi-download"></i> Download & Block
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Notification Toast -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    <div id="notification-toast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2 toast-icon"></i>
+            <strong class="me-auto toast-title">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body toast-message">
+            <!-- Message will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Category Card Styles */
+    .category-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .category-card.loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* Status Badges */
+    .status-badge.blocked {
+        background-color: #dc3545;
+    }
+
+    .status-badge.allowed {
+        background-color: #28a745;
+    }
+
+    .source-badge.built-in {
+        background-color: #6c757d;
+    }
+
+    .source-badge.ut1-blacklist {
+        background-color: #17a2b8;
+    }
+
+    /* Toggle Switch */
+    .form-switch .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+    }
+
+    .form-switch .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    /* Update Status Indicators */
+    .outdated-badge {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    /* Progress Bar */
+    .category-progress {
+        height: 25px;
+    }
+
+    /* Filter Button Active State */
+    .btn-group .btn.active {
+        font-weight: bold;
+    }
+
+    /* Stats Cards */
+    .card.border-primary {
+        border-width: 2px !important;
+    }
+
+    .card.border-danger {
+        border-width: 2px !important;
+    }
+
+    .card.border-success {
+        border-width: 2px !important;
+    }
+</style>
+
+<script>
+    // Global state
+    let allCategories = [];
+    let currentFilter = 'all';
+    let searchTerm = '';
+
+    // Load categories on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCategories();
+
+        // Set up event listeners
+        setupFilterButtons();
+        setupSearchBox();
+        setupBulkActions();
+    });
+
+    // Load categories from API
+    async function loadCategories() {
+        try {
+            const response = await fetch('/api/categories');
+            if (!response.ok) throw new Error('Failed to load categories');
+
+            allCategories = await response.json();
+            renderCategories();
+            updateStats();
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            showNotification('Failed to load categories', 'error');
+        } finally {
+            document.getElementById('loading-spinner').style.display = 'none';
+        }
+    }
+
+    // Render categories based on current filter and search
+    function renderCategories() {
+        const grid = document.getElementById('category-grid');
+        grid.innerHTML = '';
+
+        const filtered = allCategories.filter(cat => {
+            // Apply filter
+            if (currentFilter === 'blocked' && !cat.is_blocked) return false;
+            if (currentFilter === 'allowed' && cat.is_blocked) return false;
+            if (currentFilter === 'not-downloaded' && cat.domains_loaded) return false;
+            if (currentFilter === 'needs-update' && !cat.needs_update) return false;
+
+            // Apply search
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                return cat.name.toLowerCase().includes(term) ||
+                       cat.description.toLowerCase().includes(term);
+            }
+
+            return true;
+        });
+
+        filtered.forEach(category => {
+            grid.appendChild(createCategoryCard(category));
+        });
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center text-muted my-5"><h4>No categories found</h4></div>';
+        }
+    }
+
+    // Create a category card from template
+    function createCategoryCard(category) {
+        const template = document.getElementById('category-card-template');
+        const clone = template.content.cloneNode(true);
+        const wrapper = clone.querySelector('.category-card-wrapper');
+
+        // Set data attribute
+        wrapper.dataset.categoryId = category.id;
+
+        // Status badge
+        const statusBadge = clone.querySelector('.status-badge');
+        statusBadge.textContent = category.is_blocked ? 'BLOCKED' : 'ALLOWED';
+        statusBadge.classList.add(category.is_blocked ? 'blocked' : 'allowed');
+
+        // Source badge
+        const sourceBadge = clone.querySelector('.source-badge');
+        sourceBadge.textContent = category.source === 'built-in' ? 'Built-in' : 'UT1';
+        sourceBadge.classList.add(category.source);
+
+        // Category info
+        clone.querySelector('.category-icon').textContent = category.icon;
+        clone.querySelector('.category-name').textContent = category.name;
+        clone.querySelector('.category-description').textContent = category.description;
+
+        // Stats line
+        const statsEl = clone.querySelector('.category-stats small');
+        if (!category.domains_loaded) {
+            statsEl.textContent = 'Not downloaded yet';
+            statsEl.classList.add('text-warning');
+        } else {
+            const domainText = category.domain_count.toLocaleString() + ' domains';
+            const updateText = category.last_updated ?
+                'Updated ' + formatRelativeTime(category.last_updated) : 'Never updated';
+
+            statsEl.innerHTML = `${domainText} &bull; ${updateText}`;
+
+            if (category.needs_update) {
+                statsEl.innerHTML += ' <span class="badge outdated-badge">⚠️ Outdated</span>';
+            }
+        }
+
+        // Toggle switch
+        const toggle = clone.querySelector('.category-toggle');
+        toggle.checked = category.is_blocked;
+        toggle.disabled = !category.domains_loaded;
+        toggle.addEventListener('change', () => toggleCategory(category.id, toggle.checked));
+
+        // View URLs button
+        const viewBtn = clone.querySelector('.btn-view-urls');
+        viewBtn.addEventListener('click', () => viewCategoryDomains(category.id));
+
+        // Update button (UT1 only, if downloaded)
+        const updateBtn = clone.querySelector('.btn-update');
+        if (category.source === 'ut1-blacklist' && category.domains_loaded) {
+            updateBtn.classList.remove('d-none');
+            updateBtn.addEventListener('click', () => updateCategory(category.id));
+        }
+
+        // Download button (UT1 only, if not downloaded)
+        const downloadBtn = clone.querySelector('.btn-download');
+        if (category.source === 'ut1-blacklist' && !category.domains_loaded) {
+            downloadBtn.classList.remove('d-none');
+            downloadBtn.addEventListener('click', () => downloadAndBlockCategory(category.id));
+        }
+
+        return clone;
+    }
+
+    // Toggle category blocking
+    async function toggleCategory(categoryId, blocked) {
+        const card = document.querySelector(`[data-category-id="${categoryId}"]`);
+        card.querySelector('.category-card').classList.add('loading');
+
+        try {
+            const response = await fetch(`/api/categories/${categoryId}/toggle`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({blocked})
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                await loadCategories(); // Reload to reflect changes
+            } else {
+                showNotification(result.message, 'error');
+                // Revert toggle
+                card.querySelector('.category-toggle').checked = !blocked;
+            }
+        } catch (error) {
+            console.error('Error toggling category:', error);
+            showNotification('Failed to toggle category', 'error');
+            card.querySelector('.category-toggle').checked = !blocked;
+        } finally {
+            card.querySelector('.category-card').classList.remove('loading');
+        }
+    }
+
+    // Update category from UT1
+    async function updateCategory(categoryId) {
+        const card = document.querySelector(`[data-category-id="${categoryId}"]`);
+        const updateBtn = card.querySelector('.btn-update');
+        const progressBar = card.querySelector('.category-progress');
+        const progressBarInner = progressBar.querySelector('.progress-bar');
+
+        updateBtn.disabled = true;
+        progressBar.classList.remove('d-none');
+
+        try {
+            // Start update
+            const response = await fetch(`/api/categories/${categoryId}/update`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                await loadCategories();
+            } else {
+                showNotification(result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error updating category:', error);
+            showNotification('Failed to update category', 'error');
+        } finally {
+            updateBtn.disabled = false;
+            progressBar.classList.add('d-none');
+        }
+    }
+
+    // Download and block category
+    async function downloadAndBlockCategory(categoryId) {
+        await updateCategory(categoryId);
+        // After download, automatically enable blocking
+        const category = allCategories.find(c => c.id === categoryId);
+        if (category && category.domains_loaded) {
+            await toggleCategory(categoryId, true);
+        }
+    }
+
+    // View category domains
+    function viewCategoryDomains(categoryId) {
+        window.location.href = `/blacklist-domains/${categoryId}`;
+    }
+
+    // Update statistics
+    function updateStats() {
+        const total = allCategories.length;
+        const blocked = allCategories.filter(c => c.is_blocked).length;
+        const allowed = total - blocked;
+        const notDownloaded = allCategories.filter(c => !c.domains_loaded).length;
+        const needsUpdate = allCategories.filter(c => c.needs_update).length;
+        const totalDomains = allCategories.reduce((sum, c) => sum + c.domain_count, 0);
+
+        document.getElementById('stats-total').textContent = total;
+        document.getElementById('stats-blocked').textContent = blocked;
+        document.getElementById('stats-domains').textContent = totalDomains.toLocaleString();
+
+        document.getElementById('count-all').textContent = total;
+        document.getElementById('count-blocked').textContent = blocked;
+        document.getElementById('count-allowed').textContent = allowed;
+        document.getElementById('count-not-downloaded').textContent = notDownloaded;
+        document.getElementById('count-needs-update').textContent = needsUpdate;
+    }
+
+    // Setup filter buttons
+    function setupFilterButtons() {
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                renderCategories();
+            });
+        });
+    }
+
+    // Setup search box
+    function setupSearchBox() {
+        const searchBox = document.getElementById('search-box');
+        searchBox.addEventListener('input', function() {
+            searchTerm = this.value;
+            renderCategories();
+        });
+    }
+
+    // Setup bulk actions
+    function setupBulkActions() {
+        document.getElementById('btn-block-all').addEventListener('click', () => bulkToggle(true));
+        document.getElementById('btn-unblock-all').addEventListener('click', () => bulkToggle(false));
+        document.getElementById('btn-download-all').addEventListener('click', bulkDownloadAll);
+        document.getElementById('btn-update-outdated').addEventListener('click', bulkUpdateOutdated);
+        document.getElementById('btn-update-all-ut1').addEventListener('click', bulkUpdateAllUT1);
+    }
+
+    // Bulk toggle all categories
+    async function bulkToggle(blocked) {
+        if (!confirm(`Are you sure you want to ${blocked ? 'block' : 'unblock'} all categories?`)) return;
+
+        const categoryIds = allCategories
+            .filter(c => c.domains_loaded)
+            .map(c => c.id);
+
+        try {
+            const response = await fetch('/api/categories/bulk-toggle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({category_ids: categoryIds, blocked})
+            });
+
+            const result = await response.json();
+
+            if (result.success || result.updated_count > 0) {
+                showNotification(`Successfully ${blocked ? 'blocked' : 'unblocked'} ${result.updated_count} categories`, 'success');
+                await loadCategories();
+            } else {
+                showNotification('Failed to toggle categories', 'error');
+            }
+        } catch (error) {
+            console.error('Error in bulk toggle:', error);
+            showNotification('Failed to toggle categories', 'error');
+        }
+    }
+
+    // Bulk download all not downloaded
+    async function bulkDownloadAll() {
+        const notDownloaded = allCategories.filter(c => !c.domains_loaded && c.source === 'ut1-blacklist');
+
+        if (notDownloaded.length === 0) {
+            showNotification('All categories are already downloaded', 'info');
+            return;
+        }
+
+        if (!confirm(`Download ${notDownloaded.length} categories? This may take a while.`)) return;
+
+        const categoryIds = notDownloaded.map(c => c.id);
+
+        try {
+            const response = await fetch('/api/categories/bulk-update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({category_ids: categoryIds})
+            });
+
+            const result = await response.json();
+
+            if (result.success || result.updated_count > 0) {
+                showNotification(`Successfully downloaded ${result.updated_count} categories with ${result.total_domains.toLocaleString()} domains`, 'success');
+                await loadCategories();
+            } else {
+                showNotification('Failed to download categories', 'error');
+            }
+        } catch (error) {
+            console.error('Error in bulk download:', error);
+            showNotification('Failed to download categories', 'error');
+        }
+    }
+
+    // Bulk update outdated
+    async function bulkUpdateOutdated() {
+        const outdated = allCategories.filter(c => c.needs_update && c.source === 'ut1-blacklist');
+
+        if (outdated.length === 0) {
+            showNotification('No categories need updating', 'info');
+            return;
+        }
+
+        if (!confirm(`Update ${outdated.length} outdated categories? This may take a while.`)) return;
+
+        const categoryIds = outdated.map(c => c.id);
+
+        try {
+            const response = await fetch('/api/categories/bulk-update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({category_ids: categoryIds})
+            });
+
+            const result = await response.json();
+
+            if (result.success || result.updated_count > 0) {
+                showNotification(`Successfully updated ${result.updated_count} categories`, 'success');
+                await loadCategories();
+            } else {
+                showNotification('Failed to update categories', 'error');
+            }
+        } catch (error) {
+            console.error('Error in bulk update:', error);
+            showNotification('Failed to update categories', 'error');
+        }
+    }
+
+    // Bulk update all UT1 categories
+    async function bulkUpdateAllUT1() {
+        const ut1Categories = allCategories.filter(c => c.source === 'ut1-blacklist' && c.domains_loaded);
+
+        if (ut1Categories.length === 0) {
+            showNotification('No UT1 categories to update', 'info');
+            return;
+        }
+
+        if (!confirm(`Update all ${ut1Categories.length} UT1 categories? This may take a while.`)) return;
+
+        const categoryIds = ut1Categories.map(c => c.id);
+
+        try {
+            const response = await fetch('/api/categories/bulk-update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({category_ids: categoryIds})
+            });
+
+            const result = await response.json();
+
+            if (result.success || result.updated_count > 0) {
+                showNotification(`Successfully updated ${result.updated_count} categories with ${result.total_domains.toLocaleString()} total domains`, 'success');
+                await loadCategories();
+            } else {
+                showNotification('Failed to update categories', 'error');
+            }
+        } catch (error) {
+            console.error('Error in bulk update:', error);
+            showNotification('Failed to update categories', 'error');
+        }
+    }
+
+    // Show notification toast
+    function showNotification(message, type = 'info') {
+        const toast = document.getElementById('notification-toast');
+        const icon = toast.querySelector('.toast-icon');
+        const title = toast.querySelector('.toast-title');
+        const messageEl = toast.querySelector('.toast-message');
+
+        // Set icon and title based on type
+        const config = {
+            success: {icon: 'bi-check-circle', title: 'Success', class: 'text-success'},
+            error: {icon: 'bi-exclamation-circle', title: 'Error', class: 'text-danger'},
+            warning: {icon: 'bi-exclamation-triangle', title: 'Warning', class: 'text-warning'},
+            info: {icon: 'bi-info-circle', title: 'Info', class: 'text-info'}
+        };
+
+        const cfg = config[type] || config.info;
+        icon.className = `bi ${cfg.icon} me-2 toast-icon ${cfg.class}`;
+        title.textContent = cfg.title;
+        messageEl.textContent = message;
+
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+
+    // Format relative time
+    function formatRelativeTime(isoString) {
+        if (!isoString) return 'never';
+
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        return `${Math.floor(diffDays / 30)} months ago`;
+    }
+</script>
+
+{% endblock %}

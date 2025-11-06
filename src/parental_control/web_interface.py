@@ -1103,6 +1103,225 @@ def change_password():
     
     return render_template('change_password.html', current_page='settings')
 
+# =============================================================================
+# Category Management Routes
+# =============================================================================
+
+@app.route('/categories')
+@login_required
+def categories():
+    """Display unified category management page."""
+    return render_template('categories.html', current_page='categories')
+
+# =============================================================================
+# Category Management API Endpoints
+# =============================================================================
+
+@app.route('/api/categories', methods=['GET'])
+@login_required
+def api_get_categories():
+    """Get all categories with their status."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        categories = category_manager.get_all_categories()
+
+        return jsonify(categories), 200
+    except Exception as e:
+        logging.error(f"Error getting categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_id>', methods=['GET'])
+@login_required
+def api_get_category(category_id):
+    """Get a single category by ID."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        category = category_manager.get_category(category_id)
+
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        return jsonify(category), 200
+    except Exception as e:
+        logging.error(f"Error getting category {category_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_id>/toggle', methods=['POST'])
+@login_required
+def api_toggle_category(category_id):
+    """Toggle category blocking status."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        data = request.get_json()
+        if not data or 'blocked' not in data:
+            return jsonify({'error': 'Missing "blocked" parameter'}), 400
+
+        blocked = data['blocked']
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        success, message = category_manager.toggle_category_blocking(category_id, blocked)
+
+        if success:
+            # Update hosts file to apply changes
+            pc._update_hosts_file()
+
+            return jsonify({
+                'success': True,
+                'is_blocked': blocked,
+                'message': message
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+    except Exception as e:
+        logging.error(f"Error toggling category {category_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_id>/domains', methods=['GET'])
+@login_required
+def api_get_category_domains(category_id):
+    """Get domains for a category with pagination and search."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 100, type=int)
+        search = request.args.get('search', None, type=str)
+
+        offset = (page - 1) * limit
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        result = category_manager.get_category_domains(category_id, limit, offset, search)
+
+        if 'error' in result:
+            return jsonify(result), 404
+
+        return jsonify(result), 200
+    except Exception as e:
+        logging.error(f"Error getting domains for category {category_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_id>/update', methods=['POST'])
+@login_required
+def api_update_category(category_id):
+    """Download/update category domains from UT1."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        success, message, domain_count = category_manager.update_category(category_id)
+
+        if success:
+            # Update hosts file if category is blocked
+            category = category_manager.get_category(category_id)
+            if category and category['is_blocked']:
+                pc._update_hosts_file()
+
+            return jsonify({
+                'success': True,
+                'message': message,
+                'domain_count': domain_count,
+                'status': 'updated',
+                'last_updated': datetime.now().isoformat()
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+    except Exception as e:
+        logging.error(f"Error updating category {category_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_id>/update-status', methods=['GET'])
+@login_required
+def api_get_category_update_status(category_id):
+    """Get current update status for progress tracking."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        status = category_manager.get_category_update_status(category_id)
+
+        return jsonify(status), 200
+    except Exception as e:
+        logging.error(f"Error getting update status for category {category_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/bulk-toggle', methods=['POST'])
+@login_required
+def api_bulk_toggle_categories():
+    """Toggle multiple categories at once."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        data = request.get_json()
+        if not data or 'category_ids' not in data or 'blocked' not in data:
+            return jsonify({'error': 'Missing "category_ids" or "blocked" parameter'}), 400
+
+        category_ids = data['category_ids']
+        blocked = data['blocked']
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        results = category_manager.bulk_toggle(category_ids, blocked)
+
+        if results['success'] or results['updated_count'] > 0:
+            # Update hosts file to apply changes
+            pc._update_hosts_file()
+
+        return jsonify(results), 200
+    except Exception as e:
+        logging.error(f"Error bulk toggling categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/bulk-update', methods=['POST'])
+@login_required
+def api_bulk_update_categories():
+    """Update multiple UT1 categories at once."""
+    try:
+        from parental_control.category_manager import CategoryManager
+
+        data = request.get_json()
+        if not data or 'category_ids' not in data:
+            return jsonify({'error': 'Missing "category_ids" parameter'}), 400
+
+        category_ids = data['category_ids']
+
+        pc = ParentalControl()
+        category_manager = CategoryManager(pc.db, pc.blacklist_manager)
+
+        results = category_manager.bulk_update(category_ids)
+
+        if results['success'] or results['updated_count'] > 0:
+            # Update hosts file for any blocked categories
+            pc._update_hosts_file()
+
+        return jsonify(results), 200
+    except Exception as e:
+        logging.error(f"Error bulk updating categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
 def main():
     try:
         print("Checking if running as root...")  # Debug print
