@@ -53,10 +53,31 @@ echo -e "${GREEN}✓ Directory created: $INSTALL_DIR${NC}"
 # Copy files
 echo -e "${BLUE}Copying application files...${NC}"
 
-# Copy source directory
+# Copy source directory (excluding venv, cache, and other unnecessary files)
 if [ -d "$SCRIPT_DIR/src" ]; then
-    cp -r "$SCRIPT_DIR/src" "$INSTALL_DIR/"
-    echo -e "${GREEN}✓ Copied src directory${NC}"
+    # Use rsync if available (better for excluding patterns), otherwise use cp with filtering
+    if command -v rsync &> /dev/null; then
+        rsync -av --delete \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            --exclude='*.pyo' \
+            --exclude='*.pyd' \
+            --exclude='.DS_Store' \
+            --exclude='*.egg-info/' \
+            "$SCRIPT_DIR/src/" "$INSTALL_DIR/src/"
+    else
+        # Fallback to cp with manual exclusion
+        mkdir -p "$INSTALL_DIR/src"
+        cd "$SCRIPT_DIR/src"
+        find . -type f -not -path "*/venv/*" -not -path "*/__pycache__/*" -not -name "*.pyc" -not -name "*.pyo" | \
+            while read file; do
+                mkdir -p "$INSTALL_DIR/src/$(dirname "$file")"
+                cp "$file" "$INSTALL_DIR/src/$file"
+            done
+        cd "$SCRIPT_DIR"
+    fi
+    echo -e "${GREEN}✓ Copied src directory (excluded venv and cache files)${NC}"
 else
     echo -e "${RED}Error: src directory not found in $SCRIPT_DIR${NC}"
     exit 1
