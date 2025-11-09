@@ -45,6 +45,30 @@ if systemctl is-active --quiet $SERVICE_NAME 2>/dev/null; then
     echo -e "${GREEN}✓ Service stopped${NC}"
 fi
 
+# Kill any lingering Python processes
+echo -e "${BLUE}Cleaning up old processes...${NC}"
+pkill -f "parental_control" 2>/dev/null || true
+sleep 1
+echo -e "${GREEN}✓ Processes cleaned${NC}"
+
+# Clear Python bytecode cache to prevent loading old code
+if [ -d "$INSTALL_DIR" ]; then
+    echo -e "${BLUE}Clearing Python cache...${NC}"
+    find "$INSTALL_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$INSTALL_DIR" -name "*.pyc" -delete 2>/dev/null || true
+    find "$INSTALL_DIR" -name "*.pyo" -delete 2>/dev/null || true
+    echo -e "${GREEN}✓ Python cache cleared${NC}"
+fi
+
+# Verify port 5000 is free
+echo -e "${BLUE}Checking if port 5000 is available...${NC}"
+if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo -e "${YELLOW}Warning: Port 5000 is still in use. Attempting to free it...${NC}"
+    lsof -ti:5000 | xargs kill -9 2>/dev/null || true
+    sleep 2
+fi
+echo -e "${GREEN}✓ Port 5000 is available${NC}"
+
 # Create installation directory
 echo -e "${BLUE}Creating installation directory...${NC}"
 mkdir -p "$INSTALL_DIR"
@@ -53,10 +77,31 @@ echo -e "${GREEN}✓ Directory created: $INSTALL_DIR${NC}"
 # Copy files
 echo -e "${BLUE}Copying application files...${NC}"
 
-# Copy source directory
+# Copy source directory (excluding venv, cache, and other unnecessary files)
 if [ -d "$SCRIPT_DIR/src" ]; then
-    cp -r "$SCRIPT_DIR/src" "$INSTALL_DIR/"
-    echo -e "${GREEN}✓ Copied src directory${NC}"
+    # Use rsync if available (better for excluding patterns), otherwise use cp with filtering
+    if command -v rsync &> /dev/null; then
+        rsync -av --delete \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            --exclude='*.pyo' \
+            --exclude='*.pyd' \
+            --exclude='.DS_Store' \
+            --exclude='*.egg-info/' \
+            "$SCRIPT_DIR/src/" "$INSTALL_DIR/src/"
+    else
+        # Fallback to cp with manual exclusion
+        mkdir -p "$INSTALL_DIR/src"
+        cd "$SCRIPT_DIR/src"
+        find . -type f -not -path "*/venv/*" -not -path "*/__pycache__/*" -not -name "*.pyc" -not -name "*.pyo" | \
+            while read file; do
+                mkdir -p "$INSTALL_DIR/src/$(dirname "$file")"
+                cp "$file" "$INSTALL_DIR/src/$file"
+            done
+        cd "$SCRIPT_DIR"
+    fi
+    echo -e "${GREEN}✓ Copied src directory (excluded venv and cache files)${NC}"
 else
     echo -e "${RED}Error: src directory not found in $SCRIPT_DIR${NC}"
     exit 1
@@ -117,8 +162,9 @@ fi
 echo -e "${BLUE}Starting ${SERVICE_NAME} service...${NC}"
 systemctl start $SERVICE_NAME
 
-# Wait a moment for the service to start
-sleep 2
+# Wait for the service to fully start
+echo -e "${BLUE}Waiting for service to initialize...${NC}"
+sleep 5
 
 # Check service status
 if systemctl is-active --quiet $SERVICE_NAME; then
@@ -129,6 +175,23 @@ else
     systemctl status $SERVICE_NAME --no-pager || true
     exit 1
 fi
+
+# Verify web interface is responding
+echo -e "${BLUE}Verifying web interface...${NC}"
+max_attempts=10
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if curl -s http://localhost:5000/ >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Web interface is responding${NC}"
+        break
+    fi
+    attempt=$((attempt + 1))
+    if [ $attempt -lt $max_attempts ]; then
+        sleep 1
+    else
+        echo -e "${YELLOW}⚠ Web interface not responding yet (this may be normal on first start)${NC}"
+    fi
+done
 
 echo ""
 echo -e "${GREEN}=========================================${NC}"
@@ -178,5 +241,15 @@ else
     echo -e "${RED}✗ New API routes not found in web_interface.py${NC}"
 fi
 
+# Verify the /categories route is actually accessible (catches bytecode cache issues)
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/categories 2>/dev/null | grep -q "302\|200"; then
+    echo -e "${GREEN}✓ /categories route is accessible${NC}"
+else
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/categories 2>/dev/null)
+    echo -e "${YELLOW}⚠ /categories route returned HTTP $HTTP_CODE (may need login or cache clear)${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}All done! 🎉${NC}"
+echo ""
+echo -e "${BLUE}Important: Clear your browser cache (Ctrl+Shift+R) to see changes!${NC}"
