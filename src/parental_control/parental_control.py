@@ -17,12 +17,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 try:
     from .database import ParentalControlDB
     from .blacklist_manager import BlacklistManager
+    from .category_manager import CategoryManager
     from .time_management import TimeManager
     from .activity_logger import ActivityLogger
     from .hosts_manager import HostsFileManager
 except ImportError:
     from parental_control.database import ParentalControlDB
     from parental_control.blacklist_manager import BlacklistManager
+    from parental_control.category_manager import CategoryManager
     from parental_control.time_management import TimeManager
     from parental_control.activity_logger import ActivityLogger
     from parental_control.hosts_manager import HostsFileManager
@@ -55,16 +57,17 @@ class ParentalControl:
     def __init__(self):
         self.db_path = Path('/var/lib/ubuntu-parental/control.json')
         self._ensure_database_directory()
-        
+
         # Initialize new database layer
         self.db = ParentalControlDB(str(self.db_path))
-        
+
         # Initialize managers with new database
         self.blacklist_manager = BlacklistManager(self.db)
+        self.category_manager = CategoryManager(self.db, self.blacklist_manager)
         self.time_manager = TimeManager(self.db)
         self.activity_logger = ActivityLogger(self.db)
         self.hosts_manager = HostsFileManager()
-        
+
         # Initialize blocking server (optional)
         self.blocking_server = None
     
@@ -208,11 +211,20 @@ class ParentalControl:
         # Get manually blocked sites
         blocked_sites = self.db.get_blocked_sites()
         domains = [site['domain'] for site in blocked_sites]
-        
-        # Get domains from active blacklists
+
+        # Get domains from active UT1 blacklist categories
         blacklist_domains = self.db.get_blacklist_domains()
         domains.extend(blacklist_domains)
-        
+
+        # Get domains from active built-in categories
+        active_categories = self.db.get_blacklist_categories(active_only=True)
+        for category in active_categories:
+            if category.get('source') == 'built-in':
+                category_id = category['name']
+                if category_id in self.category_manager.BUILTIN_CATEGORIES:
+                    builtin_domains = self.category_manager.BUILTIN_CATEGORIES[category_id]['domains']
+                    domains.extend(builtin_domains)
+
         return list(set(domains))  # Remove duplicates
     
     def get_blocked_categories(self) -> List[str]:
@@ -519,8 +531,24 @@ class ParentalControl:
                 manual_site = next((site for site in blocked_sites if site.get('domain') == parent_domain), None)
                 category = manual_site.get('category', 'MANUAL') if manual_site else 'MANUAL'
                 return True, [category]
-        
-        # Check blacklist categories
+
+        # Check built-in categories
+        active_categories = self.db.get_blacklist_categories(active_only=True)
+        for category in active_categories:
+            if category.get('source') == 'built-in':
+                category_id = category['name']
+                if category_id in self.category_manager.BUILTIN_CATEGORIES:
+                    builtin_domains = self.category_manager.BUILTIN_CATEGORIES[category_id]['domains']
+                    # Check if domain or any parent domain matches
+                    if domain_lower in builtin_domains:
+                        return True, [category.get('display_name', category_id)]
+                    # Check parent domains
+                    for i in range(1, len(parts)):
+                        parent_domain = '.'.join(parts[i:])
+                        if parent_domain in builtin_domains:
+                            return True, [category.get('display_name', category_id)]
+
+        # Check UT1 blacklist categories
         return self.blacklist_manager.is_domain_blocked(domain_lower)
         
     def get_dns_settings(self):
