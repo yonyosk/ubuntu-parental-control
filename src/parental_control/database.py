@@ -493,25 +493,49 @@ class ParentalControlDB:
                 return 0
     
     def get_blacklist_domains(self, category: str = None) -> List[str]:
-        """Get domains from blacklists."""
+        """Get domains from blacklists.
+
+        Args:
+            category: Specific category to get domains from. If None, returns domains
+                     from all ACTIVE categories only.
+        """
         with self._lock:
             if category:
                 Domain = Query()
                 results = self.blacklist_domains.search(Domain.category == category)
             else:
-                results = self.blacklist_domains.all()
-            
+                # Only return domains from active categories
+                active_categories = self.get_blacklist_categories(active_only=True)
+                active_category_names = [cat['name'] for cat in active_categories]
+
+                if not active_category_names:
+                    return []
+
+                Domain = Query()
+                results = self.blacklist_domains.search(Domain.category.one_of(active_category_names))
+
             return [item['domain'] for item in results]
     
     def is_domain_in_blacklist(self, domain: str) -> tuple[bool, List[str]]:
-        """Check if domain is in any blacklist."""
+        """Check if domain is in any ACTIVE blacklist category.
+
+        Returns:
+            Tuple of (is_blocked, list of active categories that block this domain)
+        """
         with self._lock:
             Domain = Query()
             domain = domain.lower().strip()
-            
+
+            # Get active categories to filter results
+            active_categories = self.get_blacklist_categories(active_only=True)
+            active_category_names = [cat['name'] for cat in active_categories]
+
+            if not active_category_names:
+                return False, []
+
             # Check exact match first
             results = self.blacklist_domains.search(Domain.domain == domain)
-            
+
             # If no exact match, check if any parent domain is blocked
             if not results:
                 # Remove subdomains one by one and check
@@ -523,8 +547,10 @@ class ParentalControlDB:
                     if parent_results:
                         results.extend(parent_results)
                         break
-            
-            categories = [item['category'] for item in results]
+
+            # Filter results to only include active categories
+            active_results = [item for item in results if item['category'] in active_category_names]
+            categories = [item['category'] for item in active_results]
             return bool(categories), categories
     
     # Utility Methods
