@@ -99,6 +99,19 @@ else:
 DB_PATH = Path('/var/lib/ubuntu-parental/control.json')
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+# Initialize i18n (internationalization) support
+try:
+    from .i18n import init_i18n_for_flask
+    init_i18n_for_flask(app)
+    logging.info("i18n initialized successfully")
+except ImportError:
+    try:
+        from parental_control.i18n import init_i18n_for_flask
+        init_i18n_for_flask(app)
+        logging.info("i18n initialized successfully")
+    except Exception as e:
+        logging.warning(f"Could not initialize i18n: {e}")
+
 # Add custom Jinja2 filters
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
@@ -1042,6 +1055,14 @@ def blocked():
     block_category = request.args.get('category', '')
     block_type = request.args.get('type', '')  # time_restriction, category, manual, age_restricted
 
+    # Get language from query parameter or default to Hebrew
+    lang = request.args.get('lang', 'he')
+    if lang not in ['he', 'en']:
+        lang = 'he'  # Default to Hebrew
+
+    # Get language direction (RTL for Hebrew, LTR for English)
+    lang_direction = 'rtl' if lang == 'he' else 'ltr'
+
     # Default template data
     template_data = {
         'blocked_url': blocked_url,
@@ -1049,7 +1070,9 @@ def blocked():
         'category': block_category,
         'theme': 'default',  # Can be customized later
         'current_year': datetime.now().year,
-        'allow_request_access': True
+        'allow_request_access': True,
+        'lang': lang,
+        'lang_direction': lang_direction
     }
 
     # Determine which template to use based on block type or reason

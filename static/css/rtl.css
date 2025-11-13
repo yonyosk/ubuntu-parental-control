@@ -1,0 +1,307 @@
+/* ============================================
+   RTL (Right-to-Left) Support for Hebrew
+   Ubuntu Parental Control
+   ============================================ */
+
+/* Apply RTL styles when html has dir="rtl" attribute */
+[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ============================================
+   Typography RTL
+   ============================================ */
+[dir="rtl"] body {
+    text-align: right;
+}
+
+[dir="rtl"] .text-left {
+    text-align: right !important;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left !important;
+}
+
+[dir="rtl"] .text-center {
+    text-align: center !important;
+}
+
+/* ============================================
+   Flex Direction RTL
+   ============================================ */
+[dir="rtl"] .flex {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-col {
+    flex-direction: column;
+}
+
+/* ============================================
+   Lists RTL
+   ============================================ */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+    padding-right: var(--space-6);
+    padding-left: 0;
+}
+
+[dir="rtl"] .list-disc {
+    padding-right: var(--space-6);
+    padding-left: 0;
+}
+
+/* ============================================
+   Buttons and Action Elements RTL
+   ============================================ */
+[dir="rtl"] .action-buttons {
+    flex-direction: row-reverse;
+}
+
+/* Icons in buttons should still flow naturally */
+[dir="rtl"] .btn {
+    flex-direction: row-reverse;
+}
+
+/* ============================================
+   Cards and Components RTL
+   ============================================ */
+[dir="rtl"] .card {
+    text-align: right;
+}
+
+[dir="rtl"] .card-info,
+[dir="rtl"] .card-warning,
+[dir="rtl"] .card-blocked {
+    border-left-width: 1px;
+    border-right-width: 4px;
+}
+
+/* ============================================
+   Forms RTL
+   ============================================ */
+[dir="rtl"] .form-label {
+    text-align: right;
+}
+
+[dir="rtl"] .form-input,
+[dir="rtl"] .form-textarea,
+[dir="rtl"] .form-select {
+    text-align: right;
+}
+
+/* ============================================
+   Alternatives Grid RTL
+   ============================================ */
+[dir="rtl"] .alternative-item {
+    text-align: right;
+}
+
+[dir="rtl"] .alternative-link {
+    float: left;
+}
+
+[dir="rtl"] .alternative-link::after {
+    content: '←';
+}
+
+/* Remove the default arrow and add RTL arrow */
+[dir="rtl"] .alternative-link {
+    direction: rtl;
+}
+
+/* ============================================
+   Schedule Display RTL
+   ============================================ */
+[dir="rtl"] .schedule-item {
+    flex-direction: row-reverse;
+    border-left-width: 1px;
+    border-right-width: 3px;
+}
+
+[dir="rtl"] .schedule-day {
+    text-align: right;
+}
+
+/* ============================================
+   Icons and Symbols RTL
+   ============================================ */
+/* Keep icons centered, but reverse any directional ones */
+[dir="rtl"] .icon-container {
+    /* Icons are centered, no change needed */
+}
+
+/* Arrow icons should be flipped */
+[dir="rtl"] svg[data-arrow="true"] {
+    transform: scaleX(-1);
+}
+
+/* ============================================
+   Blocked Page Specific RTL
+   ============================================ */
+[dir="rtl"] .blocked-header {
+    text-align: center; /* Keep header centered */
+}
+
+[dir="rtl"] .blocked-card {
+    text-align: center; /* Keep main card centered */
+}
+
+[dir="rtl"] .blocked-domain {
+    direction: ltr; /* Domain names should stay LTR */
+    unicode-bidi: embed;
+}
+
+[dir="rtl"] .blocked-message {
+    text-align: center;
+}
+
+/* Details/Summary RTL */
+[dir="rtl"] details summary {
+    text-align: right;
+}
+
+[dir="rtl"] details summary::marker {
+    /* Move marker to the right */
+}
+
+/* ============================================
+   Educational Content RTL
+   ============================================ */
+[dir="rtl"] .card .flex {
+    flex-direction: row-reverse;
+}
+
+/* ============================================
+   Language Selector RTL
+   ============================================ */
+[dir="rtl"] .language-selector {
+    text-align: right;
+}
+
+[dir="rtl"] .language-selector select {
+    text-align: right;
+    padding-right: var(--space-3);
+    padding-left: var(--space-8);
+}
+
+/* ============================================
+   Countdown Timer RTL
+   ============================================ */
+/* Countdown should stay LTR for numbers */
+[dir="rtl"] .countdown {
+    direction: ltr;
+}
+
+[dir="rtl"] .countdown-label {
+    direction: rtl; /* But labels should be RTL */
+}
+
+/* ============================================
+   Spacing Adjustments RTL
+   ============================================ */
+[dir="rtl"] .mr-2 {
+    margin-right: 0;
+    margin-left: var(--space-2);
+}
+
+[dir="rtl"] .ml-2 {
+    margin-left: 0;
+    margin-right: var(--space-2);
+}
+
+[dir="rtl"] .mr-4 {
+    margin-right: 0;
+    margin-left: var(--space-4);
+}
+
+[dir="rtl"] .ml-4 {
+    margin-left: 0;
+    margin-right: var(--space-4);
+}
+
+[dir="rtl"] .pr-4 {
+    padding-right: 0;
+    padding-left: var(--space-4);
+}
+
+[dir="rtl"] .pl-4 {
+    padding-left: 0;
+    padding-right: var(--space-4);
+}
+
+/* ============================================
+   Badge RTL
+   ============================================ */
+[dir="rtl"] .badge {
+    /* Badges are usually centered, no change needed */
+}
+
+/* ============================================
+   Alerts RTL
+   ============================================ */
+[dir="rtl"] .alert {
+    border-left-width: 1px;
+    border-right-width: 4px;
+    text-align: right;
+}
+
+/* ============================================
+   Footer RTL
+   ============================================ */
+[dir="rtl"] .blocked-footer {
+    text-align: center; /* Keep footer centered */
+}
+
+/* ============================================
+   Links RTL
+   ============================================ */
+/* External link indicators */
+[dir="rtl"] a[target="_blank"]::after {
+    content: ' ↙'; /* RTL external link indicator */
+}
+
+/* Remove default external link indicator if exists */
+a[target="_blank"]::after {
+    content: ' ↗';
+}
+
+[dir="rtl"] a[target="_blank"]::after {
+    content: ' ↙';
+}
+
+/* ============================================
+   Hebrew Font Optimization
+   ============================================ */
+[dir="rtl"] body,
+[dir="rtl"] .blocked-title,
+[dir="rtl"] .blocked-message {
+    /* Optimize font rendering for Hebrew */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans Hebrew", sans-serif;
+}
+
+/* ============================================
+   Responsive RTL Adjustments
+   ============================================ */
+@media (max-width: 768px) {
+    [dir="rtl"] .action-buttons {
+        flex-direction: column-reverse;
+    }
+
+    [dir="rtl"] .alternatives-grid {
+        /* Grid stays the same */
+    }
+}
+
+/* ============================================
+   Print RTL (if needed)
+   ============================================ */
+@media print {
+    [dir="rtl"] * {
+        direction: rtl;
+        text-align: right;
+    }
+}

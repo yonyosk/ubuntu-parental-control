@@ -1,0 +1,178 @@
+{
+  "language_name": "English",
+  "language_code": "en",
+  "direction": "ltr",
+
+  "common": {
+    "app_name": "Ubuntu Parental Control",
+    "tagline": "Keeping you safe online",
+    "go_back": "Go Back",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "learn_more": "Learn More",
+    "copyright": "All Rights Reserved"
+  },
+
+  "blocked_page": {
+    "footer_text": "If you believe this is a mistake, please contact your parent or guardian.",
+    "change_language": "Change Language",
+    "language": "Language"
+  },
+
+  "time_restricted": {
+    "title": "Time Restriction Active",
+    "blocked": "Blocked",
+    "message_default": "This website is currently blocked due to time restrictions. Access will be available during the scheduled times.",
+    "access_available_in": "Access Available In:",
+    "next_available": "Next available",
+    "your_schedule": "Your Schedule",
+    "while_you_wait": "While You Wait...",
+    "suggestions_text": "Here are some suggestions for things you can do:",
+    "activities": {
+      "read_book": "Read a book",
+      "play_outside": "Play outside",
+      "practice_instrument": "Practice an instrument",
+      "work_homework": "Work on homework",
+      "family_time": "Spend time with family"
+    },
+    "request_access": "Request Access",
+    "countdown": {
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "seconds": "Seconds"
+    }
+  },
+
+  "category_blocked": {
+    "title": "Content Blocked",
+    "why_blocked": "Why is this blocked?",
+    "why_blocked_text": "Websites in this category are blocked to help you:",
+    "reasons": {
+      "stay_focused": "Stay focused on important tasks",
+      "avoid_distracting": "Avoid distracting or inappropriate content",
+      "healthy_habits": "Maintain healthy internet habits",
+      "protect_privacy": "Protect your privacy and safety online"
+    },
+    "try_instead": "Try These Instead",
+    "alternatives_text": "Here are some educational alternatives you can explore:",
+    "educational_tip": "Did You Know?",
+    "tip_default": "Taking regular breaks from screens can help improve your focus and creativity!",
+    "report_error": "Report Error",
+    "categories": {
+      "SOCIAL_MEDIA": {
+        "name": "Social Media & Networking",
+        "description": "Social media sites can be distracting and may not be appropriate during certain times."
+      },
+      "VIDEO": {
+        "name": "Video & Streaming",
+        "description": "Video streaming sites can consume a lot of time and may distract from important tasks."
+      },
+      "GAMING": {
+        "name": "Gaming & Entertainment",
+        "description": "Gaming sites are blocked to help you focus on schoolwork and other activities."
+      },
+      "ADULT": {
+        "name": "Adult Content",
+        "description": "This content is not appropriate and is blocked for your safety."
+      },
+      "MANUAL": {
+        "name": "Manual Block",
+        "description": "This website has been specifically blocked by your parent or guardian."
+      }
+    }
+  },
+
+  "manual_block": {
+    "title": "Access Not Allowed",
+    "message_from": "Message from",
+    "your_parent": "your parent",
+    "default_message": "This website has been specifically blocked. Please ask your parent or guardian if you have questions.",
+    "what_does_mean": "What does this mean?",
+    "explanation": "Your parent or guardian has specifically chosen to block this website. This is different from category-based or time-based restrictions.",
+    "reasons": {
+      "best_interests": "This decision was made with your best interests in mind",
+      "specific_concerns": "There may be specific concerns about this website",
+      "can_discuss": "You can discuss this decision with your parent or guardian",
+      "can_grant": "They can grant you access if there's a good reason"
+    },
+    "best_solution": "Best Solution: Have a Conversation",
+    "conversation_text": "The best way to resolve this is to talk to your parent or guardian in person. They'll be happy to explain their reasoning and listen to your perspective."
+  },
+
+  "age_restricted": {
+    "title": "Content Not Age-Appropriate",
+    "age_requirement": "Age",
+    "only": "Only",
+    "message_default": "This content is not appropriate for your age group and has been blocked for your protection.",
+    "why_protected": "Why is this protected?",
+    "protection_text": "Age restrictions exist to keep you safe from content that may be:",
+    "reasons": {
+      "not_suitable": "Not suitable for your current age",
+      "harmful": "Potentially harmful or disturbing",
+      "adult_themes": "Containing adult themes or mature content",
+      "beyond_understanding": "Beyond your current understanding or experience level"
+    },
+    "protection_care": "These restrictions are in place because we care about your wellbeing and safety online.",
+    "safety_tips": "Online Safety Tips",
+    "tips": {
+      "ask_parent": "Always ask a parent or guardian before visiting unfamiliar websites",
+      "no_personal_info": "Never share personal information (name, address, school, phone) online",
+      "report_uncomfortable": "If something online makes you uncomfortable, tell a trusted adult immediately",
+      "not_all_true": "Remember that not everything you see online is true or safe",
+      "age_appropriate": "Stick to websites and apps that are designed for your age group"
+    },
+    "learn_more": "Learn More About Online Safety",
+    "resources_text": "Check out these helpful resources:",
+    "have_questions": "Have Questions?",
+    "questions_text": "If you have questions about why this is blocked or need to access something important, talk to your parent or guardian. They're here to help keep you safe online!",
+    "report_site": "Report Site"
+  },
+
+  "access_request": {
+    "title": "Request Temporary Access",
+    "why_need": "Why do you need access?",
+    "reason_placeholder": "Please explain why you need access (minimum 20 characters)",
+    "how_long": "How long do you need?",
+    "duration_15": "15 minutes",
+    "duration_30": "30 minutes",
+    "duration_60": "1 hour",
+    "duration_120": "2 hours",
+    "char_count": "characters",
+    "send_request": "Send Request",
+    "success": "Request sent!",
+    "success_message": "Your parent or guardian will be notified.",
+    "error": "Error",
+    "min_chars_error": "Please provide a reason with at least 20 characters.",
+    "network_error": "Network error. Please check your connection and try again."
+  },
+
+  "report": {
+    "title_incorrect": "Report Incorrect Block",
+    "title_site": "Report This Website",
+    "why_incorrect": "Why is this incorrect?",
+    "what_happened": "What happened?",
+    "placeholder": "Explain why this block is incorrect",
+    "placeholder_site": "Please describe how you encountered this website",
+    "submit_report": "Submit Report",
+    "success": "Report submitted!",
+    "success_message": "Thank you for the feedback.",
+    "provide_reason": "Please provide a reason",
+    "provide_description": "Please provide a description"
+  },
+
+  "alternatives": {
+    "khan_academy": {
+      "name": "Khan Academy",
+      "description": "Free educational courses on many subjects"
+    },
+    "scratch": {
+      "name": "Scratch",
+      "description": "Learn programming through interactive projects"
+    },
+    "nasa_kids": {
+      "name": "NASA Kids Club",
+      "description": "Educational games and activities about space"
+    }
+  }
+}
