@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ theme|default('default') }}">
+<html lang="{{ lang|default('he') }}" dir="{{ lang_direction|default('rtl') }}" data-theme="{{ theme|default('default') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>{% block title %}Page Blocked{% endblock %} - Parental Control</title>
+    <title>{% block title %}{{ t('blocked_page.title', lang) }}{% endblock %} - {{ t('common.app_name', lang) }}</title>
 
     <!-- Design System CSS -->
     <link rel="stylesheet" href="/static/css/design-system.css">
     <link rel="stylesheet" href="/static/css/components.css">
+
+    <!-- RTL Support for Hebrew -->
+    {% if lang_direction == 'rtl' %}
+    <link rel="stylesheet" href="/static/css/rtl.css">
+    {% endif %}
 
     {% block extra_css %}{% endblock %}
 
@@ -75,6 +80,7 @@
             color: var(--color-text-secondary);
             margin-bottom: var(--space-6);
             word-break: break-all;
+            direction: ltr; /* Domain names always LTR */
         }
 
         .blocked-message {
@@ -99,6 +105,22 @@
             justify-content: center;
             margin-top: var(--space-6);
             flex-wrap: wrap;
+        }
+
+        .language-selector {
+            margin-top: var(--space-4);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .language-selector select {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-size: var(--text-sm);
+            cursor: pointer;
         }
 
         /* Kids theme adjustments */
@@ -163,10 +185,10 @@
         <header class="blocked-header">
             <div class="container-sm">
                 <div class="blocked-logo">
-                    🛡️ Ubuntu Parental Control
+                    🛡️ {{ t('common.app_name', lang) }}
                 </div>
                 <div class="blocked-tagline">
-                    Keeping you safe online
+                    {{ t('common.tagline', lang) }}
                 </div>
             </div>
         </header>
@@ -185,11 +207,20 @@
             <div class="container-sm">
                 {% block footer %}
                 <p>
-                    If you believe this is a mistake, please contact your parent or guardian.
+                    {{ t('blocked_page.footer_text', lang) }}
                 </p>
                 <p class="mt-2 text-tertiary">
-                    Ubuntu Parental Control &copy; {{ current_year|default('2025') }}
+                    {{ t('common.app_name', lang) }} &copy; {{ current_year|default('2025') }}
                 </p>
+
+                <!-- Language Selector -->
+                <div class="language-selector">
+                    <label for="lang-select">{{ t('blocked_page.language', lang) }}: </label>
+                    <select id="lang-select" onchange="changeLanguage(this.value)">
+                        <option value="he" {% if lang == 'he' %}selected{% endif %}>עברית (Hebrew)</option>
+                        <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
+                    </select>
+                </div>
                 {% endblock %}
             </div>
         </footer>
@@ -207,6 +238,18 @@
         function switchTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('blocked-page-theme', theme);
+        }
+
+        // Change language function
+        function changeLanguage(newLang) {
+            // Get current URL
+            const url = new URL(window.location.href);
+
+            // Update or add lang parameter
+            url.searchParams.set('lang', newLang);
+
+            // Reload page with new language
+            window.location.href = url.toString();
         }
     </script>
     {% endblock %}
