@@ -1075,17 +1075,25 @@ def blocked():
         'lang_direction': lang_direction
     }
 
+    # Import i18n for translations
+    try:
+        from .i18n import get_i18n
+        i18n = get_i18n()
+    except ImportError:
+        from parental_control.i18n import get_i18n
+        i18n = get_i18n()
+
     # Determine which template to use based on block type or reason
     if block_type == 'time_restriction' or 'time' in block_reason.lower() or 'schedule' in block_reason.lower():
-        # Time-restricted blocking
+        # Time-restricted blocking - Get translated activities
         template_data.update({
             'restriction_reason': block_reason,
             'suggested_activities': [
-                'Read a book',
-                'Play outside',
-                'Practice an instrument',
-                'Work on homework',
-                'Spend time with family'
+                i18n.get_translation(lang, 'time_restricted.activities.read_book'),
+                i18n.get_translation(lang, 'time_restricted.activities.play_outside'),
+                i18n.get_translation(lang, 'time_restricted.activities.practice_instrument'),
+                i18n.get_translation(lang, 'time_restricted.activities.work_homework'),
+                i18n.get_translation(lang, 'time_restricted.activities.family_time')
             ],
             'schedule': [
                 {'day': 'Monday-Friday', 'time': '4:00 PM - 8:00 PM'},
@@ -1111,58 +1119,41 @@ def blocked():
         return render_template('blocked/age_restricted.html', **template_data)
 
     else:
-        # Category-based blocking (default)
-        category_info = {
-            'SOCIAL_MEDIA': {
-                'name': 'Social Media & Networking',
-                'description': 'Social media sites can be distracting and may not be appropriate during certain times.',
-                'color': 'rgba(236, 72, 153, 0.1)'
-            },
-            'VIDEO': {
-                'name': 'Video & Streaming',
-                'description': 'Video streaming sites can consume a lot of time and may distract from important tasks.',
-                'color': 'rgba(139, 92, 246, 0.1)'
-            },
-            'GAMING': {
-                'name': 'Gaming & Entertainment',
-                'description': 'Gaming sites are blocked to help you focus on schoolwork and other activities.',
-                'color': 'rgba(245, 158, 11, 0.1)'
-            },
-            'ADULT': {
-                'name': 'Adult Content',
-                'description': 'This content is not appropriate and is blocked for your safety.',
-                'color': 'rgba(220, 38, 38, 0.1)'
-            }
+        # Category-based blocking (default) - Get translated category info
+        category_colors = {
+            'SOCIAL_MEDIA': 'rgba(236, 72, 153, 0.1)',
+            'VIDEO': 'rgba(139, 92, 246, 0.1)',
+            'GAMING': 'rgba(245, 158, 11, 0.1)',
+            'ADULT': 'rgba(220, 38, 38, 0.1)'
         }
 
-        cat_info = category_info.get(block_category, {
-            'name': 'Restricted Category',
-            'description': 'This website belongs to a restricted category.',
-            'color': 'rgba(99, 102, 241, 0.1)'
-        })
+        # Get translated category name and description
+        category_key = f'category_blocked.categories.{block_category}' if block_category else 'category_blocked.categories.MANUAL'
+        category_name = i18n.get_translation(lang, f'{category_key}.name', 'Restricted Category')
+        category_description = i18n.get_translation(lang, f'{category_key}.description', '')
 
         template_data.update({
-            'category_name': cat_info['name'],
-            'category_description': cat_info['description'],
-            'category_color': cat_info['color'],
+            'category_name': category_name,
+            'category_description': category_description,
+            'category_color': category_colors.get(block_category, 'rgba(99, 102, 241, 0.1)'),
             'alternatives': [
                 {
-                    'name': 'Khan Academy',
-                    'description': 'Free educational courses on many subjects',
+                    'name': i18n.get_translation(lang, 'alternatives.khan_academy.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.khan_academy.description'),
                     'url': 'https://www.khanacademy.org'
                 },
                 {
-                    'name': 'Scratch',
-                    'description': 'Learn programming through interactive projects',
+                    'name': i18n.get_translation(lang, 'alternatives.scratch.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.scratch.description'),
                     'url': 'https://scratch.mit.edu'
                 },
                 {
-                    'name': 'NASA Kids Club',
-                    'description': 'Educational games and activities about space',
+                    'name': i18n.get_translation(lang, 'alternatives.nasa_kids.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.nasa_kids.description'),
                     'url': 'https://www.nasa.gov/kidsclub'
                 }
             ],
-            'educational_tip': 'Taking regular breaks from screens can help improve your focus and creativity!'
+            'educational_tip': i18n.get_translation(lang, 'category_blocked.tip_default')
         })
         return render_template('blocked/category_blocked.html', **template_data)
 

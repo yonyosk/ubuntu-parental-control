@@ -1,6 +1,6 @@
 {% extends "blocked/base_blocked.html" %}
 
-{% block title %}Content Blocked{% endblock %}
+{% block title %}{{ t('category_blocked.title', lang) }}{% endblock %}
 
 {% block content %}
 <!-- Icon (color varies by category) -->
@@ -12,7 +12,7 @@
 </div>
 
 <!-- Title -->
-<h1 class="blocked-title">Content Blocked</h1>
+<h1 class="blocked-title">{{ t('category_blocked.title', lang) }}</h1>
 
 <!-- Category Badge -->
 {% if category_name %}
@@ -29,28 +29,24 @@
     {% if block_reason %}
         {{ block_reason }}
     {% else %}
-        This website is blocked because it belongs to a category that has been restricted.
+        {{ category_description if category_description else t('category_blocked.categories.' + category + '.description', lang) }}
     {% endif %}
 </div>
 
 <!-- Why is this blocked? (Expandable) -->
-<details class="card card-info mt-6" style="text-align: left;">
+<details class="card card-info mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
     <summary style="cursor: pointer; font-weight: 600; padding: var(--space-2);">
-        Why is this blocked?
+        {{ t('category_blocked.why_blocked', lang) }}
     </summary>
     <div class="mt-4">
         <p class="text-secondary">
-            {% if category_description %}
-                {{ category_description }}
-            {% else %}
-                Websites in the "{{ category_name or 'this category' }}" are blocked to help you:
-            {% endif %}
+            {{ t('category_blocked.why_blocked_text', lang) }}
         </p>
         <ul class="list-disc mt-4">
-            <li>Stay focused on important tasks</li>
-            <li>Avoid distracting or inappropriate content</li>
-            <li>Maintain healthy internet habits</li>
-            <li>Protect your privacy and safety online</li>
+            <li>{{ t('category_blocked.reasons.stay_focused', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.avoid_distracting', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.healthy_habits', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.protect_privacy', lang) }}</li>
         </ul>
     </div>
 </details>
@@ -58,15 +54,15 @@
 <!-- Alternative Suggestions -->
 {% if alternatives %}
 <div class="card mt-6">
-    <div class="card-title">Try These Instead</div>
-    <p class="text-secondary mb-4">Here are some educational alternatives you can explore:</p>
+    <div class="card-title">{{ t('category_blocked.try_instead', lang) }}</div>
+    <p class="text-secondary mb-4">{{ t('category_blocked.alternatives_text', lang) }}</p>
 
     <div class="alternatives-grid">
         {% for alt in alternatives %}
         <a href="{{ alt.url }}" target="_blank" class="alternative-item" style="text-decoration: none;">
             <div class="alternative-name">{{ alt.name }}</div>
             <div class="alternative-description">{{ alt.description }}</div>
-            <span class="alternative-link">Visit →</span>
+            <span class="alternative-link">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
         </a>
         {% endfor %}
     </div>
@@ -76,10 +72,10 @@
 <!-- Educational Content -->
 {% if educational_tip %}
 <div class="card card-info mt-6">
-    <div style="display: flex; gap: var(--space-4); align-items: start;">
+    <div style="display: flex; gap: var(--space-4); align-items: start; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
         <div style="font-size: 2rem;">💡</div>
-        <div style="flex: 1; text-align: left;">
-            <div class="font-semibold mb-2">Did You Know?</div>
+        <div style="flex: 1; text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+            <div class="font-semibold mb-2">{{ t('category_blocked.educational_tip', lang) }}</div>
             <p class="text-secondary">{{ educational_tip }}</p>
         </div>
     </div>
@@ -90,23 +86,23 @@
 <div class="action-buttons">
     {% if allow_request_access %}
     <button class="btn btn-primary" onclick="showRequestAccessForm()">
-        Request Access
+        {{ t('time_restricted.request_access', lang) }}
     </button>
     {% endif %}
     <button class="btn btn-ghost" onclick="showReportForm()">
-        Report Error
+        {{ t('category_blocked.report_error', lang) }}
     </button>
     <button class="btn btn-secondary" onclick="history.back()">
-        Go Back
+        {{ t('common.go_back', lang) }}
     </button>
 </div>
 
 <!-- Request Access Form -->
 <div id="request-access-form" style="display: none;" class="card mt-6">
-    <h3 class="card-title">Request Temporary Access</h3>
+    <h3 class="card-title">{{ t('access_request.title', lang) }}</h3>
     <form onsubmit="submitAccessRequest(event)">
         <div class="form-group">
-            <label class="form-label" for="reason">Why do you need access?</label>
+            <label class="form-label" for="reason">{{ t('access_request.why_need', lang) }}</label>
             <textarea
                 class="form-textarea"
                 id="reason"
@@ -115,26 +111,26 @@
                 required
                 minlength="20"
                 maxlength="500"
-                placeholder="Please explain why you need access to this website (minimum 20 characters)"></textarea>
+                placeholder="{{ t('access_request.reason_placeholder', lang) }}"></textarea>
             <span class="form-help">
-                <span id="char-count">0</span> / 500 characters
+                <span id="char-count">0</span> / 500 {{ t('access_request.char_count', lang) }}
             </span>
         </div>
         <div class="form-group">
-            <label class="form-label" for="duration">How long do you need?</label>
+            <label class="form-label" for="duration">{{ t('access_request.how_long', lang) }}</label>
             <select class="form-select" id="duration" name="duration" required>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="120">2 hours</option>
+                <option value="15">{{ t('access_request.duration_15', lang) }}</option>
+                <option value="30">{{ t('access_request.duration_30', lang) }}</option>
+                <option value="60">{{ t('access_request.duration_60', lang) }}</option>
+                <option value="120">{{ t('access_request.duration_120', lang) }}</option>
             </select>
         </div>
         <div class="action-buttons">
             <button type="submit" class="btn btn-primary">
-                Send Request
+                {{ t('access_request.send_request', lang) }}
             </button>
             <button type="button" class="btn btn-ghost" onclick="hideRequestAccessForm()">
-                Cancel
+                {{ t('common.cancel', lang) }}
             </button>
         </div>
     </form>
@@ -142,25 +138,25 @@
 
 <!-- Report Error Form -->
 <div id="report-form" style="display: none;" class="card mt-6">
-    <h3 class="card-title">Report Incorrect Block</h3>
-    <p class="text-secondary mb-4">If you believe this website was blocked by mistake, please let us know.</p>
+    <h3 class="card-title">{{ t('report.title_incorrect', lang) }}</h3>
+    <p class="text-secondary mb-4">{{ t('report.why_incorrect', lang) }}</p>
     <form onsubmit="submitReport(event)">
         <div class="form-group">
-            <label class="form-label" for="report-reason">Why is this incorrect?</label>
+            <label class="form-label" for="report-reason">{{ t('report.why_incorrect', lang) }}</label>
             <textarea
                 class="form-textarea"
                 id="report-reason"
                 name="report-reason"
                 rows="3"
                 required
-                placeholder="Explain why this block is incorrect"></textarea>
+                placeholder="{{ t('report.placeholder', lang) }}"></textarea>
         </div>
         <div class="action-buttons">
             <button type="submit" class="btn btn-primary">
-                Submit Report
+                {{ t('report.submit_report', lang) }}
             </button>
             <button type="button" class="btn btn-ghost" onclick="hideReportForm()">
-                Cancel
+                {{ t('common.cancel', lang) }}
             </button>
         </div>
     </form>
@@ -168,16 +164,16 @@
 
 <!-- Success Messages -->
 <div id="success-message" style="display: none;" class="alert alert-success mt-6">
-    <strong>Request sent!</strong> Your parent or guardian will be notified.
+    <strong>{{ t('access_request.success', lang) }}</strong> {{ t('access_request.success_message', lang) }}
 </div>
 
 <div id="report-success" style="display: none;" class="alert alert-success mt-6">
-    <strong>Report submitted!</strong> Thank you for the feedback.
+    <strong>{{ t('report.success', lang) }}</strong> {{ t('report.success_message', lang) }}
 </div>
 
 <!-- Error Message -->
 <div id="error-message" style="display: none;" class="alert alert-error mt-6">
-    <strong>Error:</strong> <span id="error-text"></span>
+    <strong>{{ t('access_request.error', lang) }}:</strong> <span id="error-text"></span>
 </div>
 
 {% endblock %}
@@ -223,7 +219,7 @@
         const duration = document.getElementById('duration').value;
 
         if (reason.length < 20) {
-            showError('Please provide a reason with at least 20 characters.');
+            showError('{{ t("access_request.min_chars_error", lang) }}');
             return;
         }
 
@@ -249,10 +245,10 @@
                 document.getElementById('success-message').style.display = 'block';
                 document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
             } else {
-                showError(data.error || 'Failed to submit request. Please try again.');
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
             }
         } catch (error) {
-            showError('Network error. Please check your connection and try again.');
+            showError('{{ t("access_request.network_error", lang) }}');
         }
     }
 
@@ -282,10 +278,10 @@
                 document.getElementById('report-success').style.display = 'block';
                 document.getElementById('report-success').scrollIntoView({ behavior: 'smooth' });
             } else {
-                showError(data.error || 'Failed to submit report. Please try again.');
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
             }
         } catch (error) {
-            showError('Network error. Please check your connection and try again.');
+            showError('{{ t("access_request.network_error", lang) }}');
         }
     }
 
