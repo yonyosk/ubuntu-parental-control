@@ -1035,18 +1035,216 @@ def update_daily_limit():
 
 @app.route('/blocked')
 def blocked():
-    """Display blocked page for restricted content"""
+    """Display enhanced blocked page for restricted content"""
     # Get parameters from URL
     blocked_url = request.args.get('url', 'Unknown URL')
     block_reason = request.args.get('reason', 'Content blocked by parental control')
     block_category = request.args.get('category', '')
-    time_restriction = request.args.get('time_restriction', '')
-    
-    return render_template('blocked.html',
-                         blocked_url=blocked_url,
-                         block_reason=block_reason,
-                         block_category=block_category,
-                         time_restriction=time_restriction)
+    block_type = request.args.get('type', '')  # time_restriction, category, manual, age_restricted
+
+    # Default template data
+    template_data = {
+        'blocked_url': blocked_url,
+        'block_reason': block_reason,
+        'category': block_category,
+        'theme': 'default',  # Can be customized later
+        'current_year': datetime.now().year,
+        'allow_request_access': True
+    }
+
+    # Determine which template to use based on block type or reason
+    if block_type == 'time_restriction' or 'time' in block_reason.lower() or 'schedule' in block_reason.lower():
+        # Time-restricted blocking
+        template_data.update({
+            'restriction_reason': block_reason,
+            'suggested_activities': [
+                'Read a book',
+                'Play outside',
+                'Practice an instrument',
+                'Work on homework',
+                'Spend time with family'
+            ],
+            'schedule': [
+                {'day': 'Monday-Friday', 'time': '4:00 PM - 8:00 PM'},
+                {'day': 'Saturday-Sunday', 'time': '9:00 AM - 9:00 PM'}
+            ]
+        })
+        return render_template('blocked/time_restricted.html', **template_data)
+
+    elif block_type == 'manual' or block_category == 'MANUAL':
+        # Manual blocking (parent-specific)
+        template_data.update({
+            'custom_message': 'This website has been specifically blocked. Please ask your parent or guardian if you have questions.',
+            'parent_name': 'your parent',
+        })
+        return render_template('blocked/manual_block.html', **template_data)
+
+    elif block_type == 'age_restricted' or 'age' in block_reason.lower():
+        # Age-restricted content
+        template_data.update({
+            'age_requirement': '18',
+            'allow_request_access': False,  # No request access for age-restricted
+        })
+        return render_template('blocked/age_restricted.html', **template_data)
+
+    else:
+        # Category-based blocking (default)
+        category_info = {
+            'SOCIAL_MEDIA': {
+                'name': 'Social Media & Networking',
+                'description': 'Social media sites can be distracting and may not be appropriate during certain times.',
+                'color': 'rgba(236, 72, 153, 0.1)'
+            },
+            'VIDEO': {
+                'name': 'Video & Streaming',
+                'description': 'Video streaming sites can consume a lot of time and may distract from important tasks.',
+                'color': 'rgba(139, 92, 246, 0.1)'
+            },
+            'GAMING': {
+                'name': 'Gaming & Entertainment',
+                'description': 'Gaming sites are blocked to help you focus on schoolwork and other activities.',
+                'color': 'rgba(245, 158, 11, 0.1)'
+            },
+            'ADULT': {
+                'name': 'Adult Content',
+                'description': 'This content is not appropriate and is blocked for your safety.',
+                'color': 'rgba(220, 38, 38, 0.1)'
+            }
+        }
+
+        cat_info = category_info.get(block_category, {
+            'name': 'Restricted Category',
+            'description': 'This website belongs to a restricted category.',
+            'color': 'rgba(99, 102, 241, 0.1)'
+        })
+
+        template_data.update({
+            'category_name': cat_info['name'],
+            'category_description': cat_info['description'],
+            'category_color': cat_info['color'],
+            'alternatives': [
+                {
+                    'name': 'Khan Academy',
+                    'description': 'Free educational courses on many subjects',
+                    'url': 'https://www.khanacademy.org'
+                },
+                {
+                    'name': 'Scratch',
+                    'description': 'Learn programming through interactive projects',
+                    'url': 'https://scratch.mit.edu'
+                },
+                {
+                    'name': 'NASA Kids Club',
+                    'description': 'Educational games and activities about space',
+                    'url': 'https://www.nasa.gov/kidsclub'
+                }
+            ],
+            'educational_tip': 'Taking regular breaks from screens can help improve your focus and creativity!'
+        })
+        return render_template('blocked/category_blocked.html', **template_data)
+
+# =============================================================================
+# Blocked Page API Endpoints
+# =============================================================================
+
+@app.route('/api/request-access', methods=['POST'])
+def api_request_access():
+    """Handle access request from blocked page"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['url', 'reason', 'duration']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate reason length
+        reason = data['reason'].strip()
+        if len(reason) < 20:
+            return jsonify({'error': 'Reason must be at least 20 characters'}), 400
+        if len(reason) > 500:
+            return jsonify({'error': 'Reason must be less than 500 characters'}), 400
+
+        # Validate duration
+        duration = data['duration']
+        allowed_durations = [15, 30, 60, 120]
+        if duration not in allowed_durations:
+            return jsonify({'error': f'Duration must be one of: {allowed_durations}'}), 400
+
+        # Log the request (in a real implementation, this would save to database)
+        logging.info(f"Access request received: URL={data['url']}, Reason={reason[:50]}..., Duration={duration}min")
+
+        # TODO: Save to database table 'access_requests'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Your request has been sent to your parent or guardian',
+            'request_id': secrets.token_hex(8)
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling access request: {e}")
+        return jsonify({'error': 'An error occurred processing your request'}), 500
+
+@app.route('/api/report-block', methods=['POST'])
+def api_report_block():
+    """Handle report of incorrect block"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if 'url' not in data or 'reason' not in data:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        reason = data['reason'].strip()
+        if not reason:
+            return jsonify({'error': 'Please provide a reason'}), 400
+
+        # Log the report (in a real implementation, this would save to database)
+        logging.info(f"Block report received: URL={data['url']}, Reason={reason[:50]}...")
+
+        # TODO: Save to database table 'user_feedback'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your report'
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling block report: {e}")
+        return jsonify({'error': 'An error occurred processing your report'}), 500
+
+@app.route('/api/report-site', methods=['POST'])
+def api_report_site():
+    """Handle report of inappropriate site"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if 'url' not in data or 'reason' not in data:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        reason = data['reason'].strip()
+        if not reason:
+            return jsonify({'error': 'Please provide a description'}), 400
+
+        # Log the report
+        logging.info(f"Site report received: URL={data['url']}, Type={data.get('type', 'unknown')}")
+
+        # TODO: Save to database table 'user_feedback'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for the report'
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling site report: {e}")
+        return jsonify({'error': 'An error occurred processing your report'}), 500
 
 @app.route('/help')
 @login_required

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme|default('default') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Page Blocked{% endblock %} - Parental Control</title>
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        /* Page-specific styles */
+        .blocked-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+        }
+
+        .blocked-header {
+            padding: var(--space-6) 0;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+        }
+
+        .blocked-logo {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .blocked-tagline {
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .blocked-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8) var(--space-4);
+        }
+
+        .blocked-card {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .blocked-icon-large {
+            margin: 0 auto var(--space-6);
+        }
+
+        .blocked-title {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            margin-bottom: var(--space-4);
+            color: var(--color-text);
+        }
+
+        .blocked-domain {
+            display: inline-block;
+            padding: var(--space-2) var(--space-4);
+            background-color: var(--color-bg-tertiary);
+            border-radius: var(--radius-lg);
+            font-family: monospace;
+            font-size: var(--text-lg);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-6);
+            word-break: break-all;
+        }
+
+        .blocked-message {
+            font-size: var(--text-lg);
+            line-height: var(--leading-relaxed);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-6);
+        }
+
+        .blocked-footer {
+            padding: var(--space-6) 0;
+            text-align: center;
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-4);
+            justify-content: center;
+            margin-top: var(--space-6);
+            flex-wrap: wrap;
+        }
+
+        /* Kids theme adjustments */
+        [data-theme="kids"] .blocked-page {
+            background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 50%, #ddd6fe 100%);
+        }
+
+        [data-theme="kids"] .blocked-title {
+            color: var(--color-primary);
+        }
+
+        /* Dark theme adjustments */
+        [data-theme="dark"] .blocked-header,
+        [data-theme="dark"] .blocked-footer {
+            border-color: var(--color-border);
+        }
+
+        /* Teens theme adjustments */
+        [data-theme="teens"] .blocked-page {
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 50%, #ecfeff 100%);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .blocked-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .blocked-title {
+                font-size: var(--text-2xl);
+            }
+
+            .blocked-message {
+                font-size: var(--text-base);
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="blocked-page">
+        <!-- Header -->
+        <header class="blocked-header">
+            <div class="container-sm">
+                <div class="blocked-logo">
+                    🛡️ Ubuntu Parental Control
+                </div>
+                <div class="blocked-tagline">
+                    Keeping you safe online
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="blocked-content">
+            <div class="blocked-card">
+                {% block content %}
+                <!-- Content will be overridden by child templates -->
+                {% endblock %}
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="blocked-footer">
+            <div class="container-sm">
+                {% block footer %}
+                <p>
+                    If you believe this is a mistake, please contact your parent or guardian.
+                </p>
+                <p class="mt-2 text-tertiary">
+                    Ubuntu Parental Control &copy; {{ current_year|default('2025') }}
+                </p>
+                {% endblock %}
+            </div>
+        </footer>
+    </div>
+
+    {% block scripts %}
+    <script>
+        // Apply theme from localStorage or default
+        (function() {
+            const savedTheme = localStorage.getItem('blocked-page-theme') || '{{ theme|default("default") }}';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+
+        // Function to switch theme (for testing)
+        function switchTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('blocked-page-theme', theme);
+        }
+    </script>
+    {% endblock %}
+</body>
+</html>

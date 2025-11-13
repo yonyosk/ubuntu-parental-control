@@ -1,0 +1,303 @@
+{% extends "blocked/base_blocked.html" %}
+
+{% block title %}Content Blocked{% endblock %}
+
+{% block content %}
+<!-- Icon (color varies by category) -->
+<div class="icon-container icon-category icon-container-lg blocked-icon-large" style="{% if category_color %}background-color: {{ category_color }}; color: white;{% endif %}">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+</div>
+
+<!-- Title -->
+<h1 class="blocked-title">Content Blocked</h1>
+
+<!-- Category Badge -->
+{% if category_name %}
+<div class="mb-4">
+    <span class="badge badge-blocked">{{ category_name }}</span>
+</div>
+{% endif %}
+
+<!-- Blocked Domain -->
+<div class="blocked-domain">{{ blocked_url }}</div>
+
+<!-- Message -->
+<div class="blocked-message">
+    {% if block_reason %}
+        {{ block_reason }}
+    {% else %}
+        This website is blocked because it belongs to a category that has been restricted.
+    {% endif %}
+</div>
+
+<!-- Why is this blocked? (Expandable) -->
+<details class="card card-info mt-6" style="text-align: left;">
+    <summary style="cursor: pointer; font-weight: 600; padding: var(--space-2);">
+        Why is this blocked?
+    </summary>
+    <div class="mt-4">
+        <p class="text-secondary">
+            {% if category_description %}
+                {{ category_description }}
+            {% else %}
+                Websites in the "{{ category_name or 'this category' }}" are blocked to help you:
+            {% endif %}
+        </p>
+        <ul class="list-disc mt-4">
+            <li>Stay focused on important tasks</li>
+            <li>Avoid distracting or inappropriate content</li>
+            <li>Maintain healthy internet habits</li>
+            <li>Protect your privacy and safety online</li>
+        </ul>
+    </div>
+</details>
+
+<!-- Alternative Suggestions -->
+{% if alternatives %}
+<div class="card mt-6">
+    <div class="card-title">Try These Instead</div>
+    <p class="text-secondary mb-4">Here are some educational alternatives you can explore:</p>
+
+    <div class="alternatives-grid">
+        {% for alt in alternatives %}
+        <a href="{{ alt.url }}" target="_blank" class="alternative-item" style="text-decoration: none;">
+            <div class="alternative-name">{{ alt.name }}</div>
+            <div class="alternative-description">{{ alt.description }}</div>
+            <span class="alternative-link">Visit →</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Educational Content -->
+{% if educational_tip %}
+<div class="card card-info mt-6">
+    <div style="display: flex; gap: var(--space-4); align-items: start;">
+        <div style="font-size: 2rem;">💡</div>
+        <div style="flex: 1; text-align: left;">
+            <div class="font-semibold mb-2">Did You Know?</div>
+            <p class="text-secondary">{{ educational_tip }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="action-buttons">
+    {% if allow_request_access %}
+    <button class="btn btn-primary" onclick="showRequestAccessForm()">
+        Request Access
+    </button>
+    {% endif %}
+    <button class="btn btn-ghost" onclick="showReportForm()">
+        Report Error
+    </button>
+    <button class="btn btn-secondary" onclick="history.back()">
+        Go Back
+    </button>
+</div>
+
+<!-- Request Access Form -->
+<div id="request-access-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">Request Temporary Access</h3>
+    <form onsubmit="submitAccessRequest(event)">
+        <div class="form-group">
+            <label class="form-label" for="reason">Why do you need access?</label>
+            <textarea
+                class="form-textarea"
+                id="reason"
+                name="reason"
+                rows="4"
+                required
+                minlength="20"
+                maxlength="500"
+                placeholder="Please explain why you need access to this website (minimum 20 characters)"></textarea>
+            <span class="form-help">
+                <span id="char-count">0</span> / 500 characters
+            </span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="duration">How long do you need?</label>
+            <select class="form-select" id="duration" name="duration" required>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                Send Request
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideRequestAccessForm()">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Report Error Form -->
+<div id="report-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">Report Incorrect Block</h3>
+    <p class="text-secondary mb-4">If you believe this website was blocked by mistake, please let us know.</p>
+    <form onsubmit="submitReport(event)">
+        <div class="form-group">
+            <label class="form-label" for="report-reason">Why is this incorrect?</label>
+            <textarea
+                class="form-textarea"
+                id="report-reason"
+                name="report-reason"
+                rows="3"
+                required
+                placeholder="Explain why this block is incorrect"></textarea>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                Submit Report
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideReportForm()">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Messages -->
+<div id="success-message" style="display: none;" class="alert alert-success mt-6">
+    <strong>Request sent!</strong> Your parent or guardian will be notified.
+</div>
+
+<div id="report-success" style="display: none;" class="alert alert-success mt-6">
+    <strong>Report submitted!</strong> Thank you for the feedback.
+</div>
+
+<!-- Error Message -->
+<div id="error-message" style="display: none;" class="alert alert-error mt-6">
+    <strong>Error:</strong> <span id="error-text"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Request Access Form
+    function showRequestAccessForm() {
+        hideReportForm();
+        document.getElementById('request-access-form').style.display = 'block';
+        document.getElementById('request-access-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'none';
+    }
+
+    // Report Form
+    function showReportForm() {
+        hideRequestAccessForm();
+        document.getElementById('report-form').style.display = 'block';
+        document.getElementById('report-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideReportForm() {
+        document.getElementById('report-form').style.display = 'none';
+    }
+
+    // Character Counter
+    const reasonField = document.getElementById('reason');
+    if (reasonField) {
+        reasonField.addEventListener('input', function() {
+            document.getElementById('char-count').textContent = this.value.length;
+        });
+    }
+
+    // Submit Access Request
+    async function submitAccessRequest(event) {
+        event.preventDefault();
+
+        const reason = document.getElementById('reason').value;
+        const duration = document.getElementById('duration').value;
+
+        if (reason.length < 20) {
+            showError('Please provide a reason with at least 20 characters.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/request-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    reason: reason,
+                    duration: parseInt(duration),
+                    category: '{{ category }}',
+                    block_type: 'category'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideRequestAccessForm();
+                document.getElementById('success-message').style.display = 'block';
+                document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || 'Failed to submit request. Please try again.');
+            }
+        } catch (error) {
+            showError('Network error. Please check your connection and try again.');
+        }
+    }
+
+    // Submit Report
+    async function submitReport(event) {
+        event.preventDefault();
+
+        const reportReason = document.getElementById('report-reason').value;
+
+        try {
+            const response = await fetch('/api/report-block', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    category: '{{ category }}',
+                    reason: reportReason
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideReportForm();
+                document.getElementById('report-success').style.display = 'block';
+                document.getElementById('report-success').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || 'Failed to submit report. Please try again.');
+            }
+        } catch (error) {
+            showError('Network error. Please check your connection and try again.');
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('error-text').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').scrollIntoView({ behavior: 'smooth' });
+
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            document.getElementById('error-message').style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}

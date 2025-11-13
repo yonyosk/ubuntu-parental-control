@@ -1,0 +1,246 @@
+{% extends "blocked/base_blocked.html" %}
+
+{% block title %}Time Restriction Active{% endblock %}
+
+{% block content %}
+<!-- Icon -->
+<div class="icon-container icon-time icon-container-lg blocked-icon-large">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+</div>
+
+<!-- Title -->
+<h1 class="blocked-title">Time Restriction Active</h1>
+
+<!-- Blocked Domain -->
+<div class="blocked-domain">{{ blocked_url }}</div>
+
+<!-- Message -->
+<div class="blocked-message">
+    {% if restriction_reason %}
+        {{ restriction_reason }}
+    {% else %}
+        This website is currently blocked due to time restrictions.
+        Access will be available during the scheduled times.
+    {% endif %}
+</div>
+
+<!-- Countdown Timer (if next_available_time is provided) -->
+{% if next_available_time %}
+<div class="card card-info">
+    <div class="card-title">Access Available In:</div>
+    <div class="countdown" id="countdown">
+        <div class="countdown-item">
+            <div class="countdown-value" id="hours">--</div>
+            <div class="countdown-label">Hours</div>
+        </div>
+        <div class="countdown-item">
+            <div class="countdown-value" id="minutes">--</div>
+            <div class="countdown-label">Minutes</div>
+        </div>
+        <div class="countdown-item">
+            <div class="countdown-value" id="seconds">--</div>
+            <div class="countdown-label">Seconds</div>
+        </div>
+    </div>
+    <p class="text-sm text-secondary mt-4">
+        Next available: <strong id="next-time">{{ next_available_time }}</strong>
+    </p>
+</div>
+{% endif %}
+
+<!-- Schedule Display -->
+{% if schedule %}
+<div class="card mt-6">
+    <div class="card-title">Your Schedule</div>
+    <div class="schedule-grid">
+        {% for item in schedule %}
+        <div class="schedule-item">
+            <span class="schedule-day">{{ item.day }}</span>
+            <span class="schedule-time">{{ item.time }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Suggested Activities -->
+{% if suggested_activities %}
+<div class="card mt-6">
+    <div class="card-title">While You Wait...</div>
+    <p class="text-secondary mb-4">Here are some suggestions for things you can do:</p>
+    <ul class="list-disc text-left">
+        {% for activity in suggested_activities %}
+        <li>{{ activity }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="action-buttons">
+    {% if allow_request_access %}
+    <button class="btn btn-primary" onclick="showRequestAccessForm()">
+        Request Access
+    </button>
+    {% endif %}
+    <button class="btn btn-secondary" onclick="history.back()">
+        Go Back
+    </button>
+</div>
+
+<!-- Hidden Request Access Form -->
+<div id="request-access-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">Request Temporary Access</h3>
+    <form onsubmit="submitAccessRequest(event)">
+        <div class="form-group">
+            <label class="form-label" for="reason">Why do you need access?</label>
+            <textarea
+                class="form-textarea"
+                id="reason"
+                name="reason"
+                rows="4"
+                required
+                minlength="20"
+                maxlength="500"
+                placeholder="Please explain why you need access (minimum 20 characters)"></textarea>
+            <span class="form-help">
+                <span id="char-count">0</span> / 500 characters
+            </span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="duration">How long do you need?</label>
+            <select class="form-select" id="duration" name="duration" required>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                Send Request
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideRequestAccessForm()">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Message -->
+<div id="success-message" style="display: none;" class="alert alert-success mt-6">
+    <strong>Request sent!</strong> Your parent or guardian will be notified.
+</div>
+
+<!-- Error Message -->
+<div id="error-message" style="display: none;" class="alert alert-error mt-6">
+    <strong>Error:</strong> <span id="error-text"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Countdown Timer
+    {% if next_available_timestamp %}
+    const targetTime = {{ next_available_timestamp }};
+
+    function updateCountdown() {
+        const now = Math.floor(Date.now() / 1000);
+        const diff = targetTime - now;
+
+        if (diff <= 0) {
+            // Time's up! Reload the page
+            location.reload();
+            return;
+        }
+
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = diff % 60;
+
+        document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+    }
+
+    // Update immediately and then every second
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    {% endif %}
+
+    // Request Access Form
+    function showRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'block';
+        document.getElementById('request-access-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'none';
+    }
+
+    // Character Counter
+    const reasonField = document.getElementById('reason');
+    if (reasonField) {
+        reasonField.addEventListener('input', function() {
+            document.getElementById('char-count').textContent = this.value.length;
+        });
+    }
+
+    // Submit Access Request
+    async function submitAccessRequest(event) {
+        event.preventDefault();
+
+        const reason = document.getElementById('reason').value;
+        const duration = document.getElementById('duration').value;
+
+        if (reason.length < 20) {
+            showError('Please provide a reason with at least 20 characters.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/request-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    reason: reason,
+                    duration: parseInt(duration),
+                    category: '{{ category }}',
+                    block_type: 'time_restriction'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideRequestAccessForm();
+                document.getElementById('success-message').style.display = 'block';
+                document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || 'Failed to submit request. Please try again.');
+            }
+        } catch (error) {
+            showError('Network error. Please check your connection and try again.');
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('error-text').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').scrollIntoView({ behavior: 'smooth' });
+
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            document.getElementById('error-message').style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}
