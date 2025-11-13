@@ -13,14 +13,14 @@ from pathlib import Path
 # Add the src directory to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from parental_control.database import Database
+from parental_control.database import ParentalControlDB
 from parental_control.time_management import TimeManager
 
 class TimeRestrictionTester:
     """Test time restriction functionality."""
 
     def __init__(self):
-        self.db = Database()
+        self.db = ParentalControlDB()
         self.time_manager = TimeManager(self.db)
 
     def print_header(self, text):

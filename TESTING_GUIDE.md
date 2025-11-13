@@ -81,10 +81,10 @@ curl -H "Host: www.example.com" http://localhost:8080
 ### Method 4: Using Python Directly
 
 ```python
-from parental_control.database import Database
+from parental_control.database import ParentalControlDB
 from parental_control.time_management import TimeManager
 
-db = Database()
+db = ParentalControlDB()
 tm = TimeManager(db)
 
 # Check current status
@@ -134,10 +134,10 @@ curl -H "Host: www.google.com" http://localhost:8080
 **Setup:**
 ```bash
 # Set daily limit via Python
-from parental_control.database import Database
+from parental_control.database import ParentalControlDB
 from parental_control.time_management import TimeManager
 
-db = Database()
+db = ParentalControlDB()
 tm = TimeManager(db)
 
 # Set 60 minute limit
