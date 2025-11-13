@@ -119,7 +119,9 @@ class NetworkEnforcer:
                 logger.warning(f"Failed to add local network rule for {network}: {msg}")
 
         # Allow DNS (so system doesn't break completely)
+        # Allow both outbound queries (to port 53) and responses (from port 53)
         for port in ['53']:
+            # Allow DNS queries (outbound to port 53)
             success, msg = self._run_iptables([
                 '-A', self.CHAIN_NAME,
                 '-p', 'udp',
@@ -127,7 +129,7 @@ class NetworkEnforcer:
                 '-j', 'ACCEPT'
             ])
             if not success:
-                logger.warning(f"Failed to add DNS rule: {msg}")
+                logger.warning(f"Failed to add DNS query rule (UDP): {msg}")
 
             success, msg = self._run_iptables([
                 '-A', self.CHAIN_NAME,
@@ -136,7 +138,26 @@ class NetworkEnforcer:
                 '-j', 'ACCEPT'
             ])
             if not success:
-                logger.warning(f"Failed to add DNS TCP rule: {msg}")
+                logger.warning(f"Failed to add DNS query rule (TCP): {msg}")
+
+            # Also allow responses from port 53 (in case ESTABLISHED doesn't catch them)
+            success, msg = self._run_iptables([
+                '-A', self.CHAIN_NAME,
+                '-p', 'udp',
+                '--sport', port,
+                '-j', 'ACCEPT'
+            ])
+            if not success:
+                logger.warning(f"Failed to add DNS response rule (UDP): {msg}")
+
+            success, msg = self._run_iptables([
+                '-A', self.CHAIN_NAME,
+                '-p', 'tcp',
+                '--sport', port,
+                '-j', 'ACCEPT'
+            ])
+            if not success:
+                logger.warning(f"Failed to add DNS response rule (TCP): {msg}")
 
         # REJECT all other outbound traffic (this blocks internet)
         # Using REJECT instead of DROP to give immediate feedback

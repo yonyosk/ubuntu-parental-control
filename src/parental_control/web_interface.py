@@ -785,7 +785,10 @@ def time_management():
         daily_limit_minutes = daily_limit.get('time_limit_minutes', 480)
         usage_percent = min(100, (today_usage / daily_limit_minutes) * 100) if daily_limit_minutes > 0 else 0
         remaining_time = max(0, daily_limit_minutes - today_usage)
-        
+
+        # Get current access status (for time restriction enforcement)
+        is_allowed, status_reason = pc.time_manager.is_access_allowed()
+
         return render_template('time_management.html',
                              current_page='time_management',
                              daily_limit=daily_limit,
@@ -793,7 +796,9 @@ def time_management():
                              schedules=schedules,
                              usage_limits=usage_limits,
                              usage_percent=usage_percent,
-                             remaining_time=remaining_time)
+                             remaining_time=remaining_time,
+                             is_allowed=is_allowed,
+                             status_reason=status_reason)
                              
     except Exception as e:
         logging.error(f"Error in time_management route: {str(e)}")
@@ -805,7 +810,9 @@ def time_management():
                              schedules=[],
                              usage_limits={'daily_minutes': 480, 'weekly_minutes': 3360},
                              usage_percent=0,
-                             remaining_time=480)
+                             remaining_time=480,
+                             is_allowed=True,
+                             status_reason='Error loading status')
 
 @app.route('/reports')
 @login_required

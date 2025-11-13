@@ -238,7 +238,7 @@ class ParentalControlDB:
             return results[offset:offset + limit]
     
     # Time Schedules Management
-    def add_time_schedule(self, name: str, start_time: str, end_time: str, 
+    def add_time_schedule(self, name: str, start_time: str, end_time: str,
                          days: List[int], is_active: bool = True) -> bool:
         """Add a time schedule."""
         with self._lock:
@@ -251,6 +251,7 @@ class ParentalControlDB:
                     'is_active': is_active,
                     'created_at': datetime.now().isoformat()
                 })
+                self.db.storage.flush()  # Flush to disk immediately
                 return True
             except Exception as e:
                 logger.error(f"Error adding time schedule: {e}")
@@ -270,11 +271,24 @@ class ParentalControlDB:
             try:
                 Schedule = Query()
                 updated = self.time_schedules.update(updates, Schedule.id == schedule_id)
+                self.db.storage.flush()  # Flush to disk immediately
                 return len(updated) > 0
             except Exception as e:
                 logger.error(f"Error updating time schedule: {e}")
                 return False
-    
+
+    def delete_time_schedule(self, schedule_id: int) -> bool:
+        """Delete a time schedule."""
+        with self._lock:
+            try:
+                Schedule = Query()
+                removed = self.time_schedules.remove(Schedule.id == schedule_id)
+                self.db.storage.flush()  # Flush to disk immediately
+                return len(removed) > 0
+            except Exception as e:
+                logger.error(f"Error deleting time schedule: {e}")
+                return False
+
     # Daily Usage Tracking
     def record_daily_usage(self, date_str: str, minutes: int) -> bool:
         """Record or update daily usage."""
@@ -302,6 +316,7 @@ class ParentalControlDB:
                         'blocks_count': 0,
                         'last_updated': datetime.now().isoformat()
                     })
+                self.db.storage.flush()  # Flush to disk immediately
                 return True
             except Exception as e:
                 logger.error(f"Error recording daily usage: {e}")
@@ -342,7 +357,8 @@ class ParentalControlDB:
                         limit_data['protection_active'] = True
                         limit_data['created_at'] = datetime.now().isoformat()
                         self.settings.insert(limit_data)
-                
+
+                self.db.storage.flush()  # Flush to disk immediately
                 return True
             except Exception as e:
                 logger.error(f"Error setting daily usage limit: {e}")
