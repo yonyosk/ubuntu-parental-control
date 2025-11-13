@@ -26,36 +26,59 @@ class BlockingHandler(BaseHTTPRequestHandler):
             # Parse the requested URL
             parsed_url = urlparse(self.path)
             host = self.headers.get('Host', 'unknown')
-            
+
+            # Detect if this was originally an HTTPS request
+            # When iptables redirects port 443 to 8080, we can infer HTTPS intent
+            # by checking if the connection came through certain mechanisms
+            was_https = self._is_https_request()
+
             # Check if this domain should be blocked
             if self.parental_control:
                 is_blocked, categories = self.parental_control.is_domain_blocked(host)
                 is_allowed, reason = self.parental_control.is_access_allowed(domain=host)
-                
+
                 if not is_allowed or is_blocked:
-                    self.serve_block_page(host, reason, categories)
+                    self.serve_block_page(host, reason, categories, was_https=was_https)
                     return
-            
+
             # If not blocked, serve a simple redirect or error
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(b'<html><body><h1>Page Not Found</h1></body></html>')
-            
+
         except Exception as e:
             logger.error(f"Error handling request: {e}")
             self.send_error(500, "Internal Server Error")
+
+    def _is_https_request(self):
+        """
+        Detect if the request was originally intended for HTTPS.
+        This is a heuristic since we're receiving redirected traffic.
+        """
+        # Check for common HTTPS indicators in headers
+        # Some browsers send Upgrade-Insecure-Requests for HTTPS
+        if self.headers.get('Upgrade-Insecure-Requests') == '1':
+            return True
+
+        # Check if the referrer is HTTPS
+        referrer = self.headers.get('Referer', '')
+        if referrer.startswith('https://'):
+            return True
+
+        # Default to HTTP (most conservative approach)
+        return False
     
     def do_POST(self):
         """Handle POST requests (same as GET for blocking)"""
         self.do_GET()
     
-    def serve_block_page(self, blocked_url, reason, categories):
+    def serve_block_page(self, blocked_url, reason, categories, was_https=False):
         """Serve the friendly block page"""
         try:
             # Determine block category and reason
             block_category = categories[0] if categories else 'MANUAL'
-            
+
             # Create block page URL with parameters
             block_url = f"http://localhost:5000/blocked"
             params = {
@@ -63,22 +86,27 @@ class BlockingHandler(BaseHTTPRequestHandler):
                 'reason': reason,
                 'category': block_category
             }
-            
+
             # Add time restriction info if applicable
             if 'schedule' in reason.lower() or 'time' in reason.lower():
                 params['time_restriction'] = reason
-            
+
+            # Add HTTPS indicator if detected
+            if was_https:
+                params['was_https'] = 'true'
+
             # Build query string
             query_params = '&'.join([f"{k}={quote(str(v))}" for k, v in params.items()])
             redirect_url = f"{block_url}?{query_params}"
-            
+
             # Send redirect to block page
             self.send_response(302)
             self.send_header('Location', redirect_url)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            
+
             # Also send a simple HTML response in case redirect doesn't work
+            https_note = " (HTTPS)" if was_https else ""
             html_content = f"""
             <!DOCTYPE html>
             <html>
@@ -87,14 +115,14 @@ class BlockingHandler(BaseHTTPRequestHandler):
                 <meta http-equiv="refresh" content="0;url={redirect_url}">
             </head>
             <body>
-                <h1>Page Blocked</h1>
+                <h1>Page Blocked{https_note}</h1>
                 <p>This page has been blocked by parental control.</p>
                 <p><a href="{redirect_url}">Click here if you are not redirected automatically</a></p>
             </body>
             </html>
             """
             self.wfile.write(html_content.encode('utf-8'))
-            
+
         except Exception as e:
             logger.error(f"Error serving block page: {e}")
             self.send_error(500, "Error serving block page")

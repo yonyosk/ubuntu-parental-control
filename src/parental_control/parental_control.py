@@ -21,6 +21,7 @@ try:
     from .time_management import TimeManager
     from .activity_logger import ActivityLogger
     from .hosts_manager import HostsFileManager
+    from .port_redirector import PortRedirector
 except ImportError:
     from parental_control.database import ParentalControlDB
     from parental_control.blacklist_manager import BlacklistManager
@@ -28,6 +29,7 @@ except ImportError:
     from parental_control.time_management import TimeManager
     from parental_control.activity_logger import ActivityLogger
     from parental_control.hosts_manager import HostsFileManager
+    from parental_control.port_redirector import PortRedirector
 
 class WebsiteCategory:
     SOCIAL_MEDIA = {
@@ -68,8 +70,9 @@ class ParentalControl:
         self.activity_logger = ActivityLogger(self.db)
         self.hosts_manager = HostsFileManager()
 
-        # Initialize blocking server (optional)
+        # Initialize blocking server and port redirector
         self.blocking_server = None
+        self.port_redirector = None
     
     def _ensure_database_directory(self):
         """Ensure database directory exists with proper permissions."""
@@ -451,31 +454,47 @@ class ParentalControl:
         """Start the blocking server for friendly block pages"""
         try:
             from .blocking_server import BlockingServer
-            
+
             if self.blocking_server and self.blocking_server.is_running():
                 logger.info("Blocking server already running")
                 return True
-            
+
+            # Start the blocking server
             self.blocking_server = BlockingServer(self, port)
             success = self.blocking_server.start()
-            
+
             if success:
                 logger.info(f"Blocking server started on port {port}")
-                # Update hosts file to redirect to blocking server
+                # Update hosts file to redirect blocked domains to 127.0.0.1
                 self.update_hosts_for_blocking_server(port)
-            
+
+                # Enable port redirection (80/443 -> 8080) using iptables
+                if not self.port_redirector:
+                    self.port_redirector = PortRedirector(blocking_server_port=port)
+
+                redirect_success = self.port_redirector.enable_redirection()
+                if redirect_success:
+                    logger.info("Port redirection enabled (80/443 -> 8080)")
+                else:
+                    logger.warning("Failed to enable port redirection - blocked pages may not display")
+
             return success
-            
+
         except Exception as e:
             logger.error(f"Failed to start blocking server: {e}")
             return False
     
     def stop_blocking_server(self):
-        """Stop the blocking server"""
+        """Stop the blocking server and disable port redirection"""
         if self.blocking_server:
             self.blocking_server.stop()
             self.blocking_server = None
             logger.info("Blocking server stopped")
+
+        # Disable port redirection
+        if self.port_redirector:
+            self.port_redirector.disable_redirection()
+            logger.info("Port redirection disabled")
     
     def update_hosts_for_blocking_server(self, port=8080):
         """Update hosts file to redirect blocked domains to blocking server"""
