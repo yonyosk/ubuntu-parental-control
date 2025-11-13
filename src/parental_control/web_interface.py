@@ -1055,10 +1055,14 @@ def blocked():
     block_category = request.args.get('category', '')
     block_type = request.args.get('type', '')  # time_restriction, category, manual, age_restricted
 
-    # Get language from query parameter or default to Hebrew
-    lang = request.args.get('lang', 'he')
+    # Get admin's default language from database
+    pc = ParentalControl()
+    default_lang = pc.db.get_default_language()
+
+    # Get language from query parameter or use admin's default
+    lang = request.args.get('lang', default_lang)
     if lang not in ['he', 'en']:
-        lang = 'he'  # Default to Hebrew
+        lang = default_lang  # Fallback to admin's default
 
     # Get language direction (RTL for Hebrew, LTR for English)
     lang_direction = 'rtl' if lang == 'he' else 'ltr'
@@ -1272,6 +1276,55 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('login'))
 
+@app.route('/settings')
+@login_required
+def settings():
+    """Display admin settings page"""
+    try:
+        db = get_db_connection()
+        default_language = db.get_default_language()
+        db.close()
+
+        return render_template('settings.html',
+                             default_language=default_language,
+                             current_page='settings')
+    except Exception as e:
+        logging.error(f"Error loading settings: {e}")
+        flash(f'Error loading settings: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/update_language_setting', methods=['POST'])
+@login_required
+def update_language_setting():
+    """Update the default language for blocking pages"""
+    try:
+        new_language = request.form.get('default_language', '').strip()
+
+        if not new_language:
+            flash('Please select a language', 'danger')
+            return redirect(url_for('settings'))
+
+        if new_language not in ['he', 'en']:
+            flash('Invalid language selection', 'danger')
+            return redirect(url_for('settings'))
+
+        db = get_db_connection()
+        success = db.set_default_language(new_language)
+        db.close()
+
+        if success:
+            language_name = 'Hebrew (עברית)' if new_language == 'he' else 'English'
+            flash(f'Default language updated to {language_name}', 'success')
+            logging.info(f"Admin changed default language to: {new_language}")
+        else:
+            flash('Failed to update language setting', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error updating language setting: {e}")
+        flash(f'Error updating language: {str(e)}', 'danger')
+
+    return redirect(url_for('settings'))
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -1281,26 +1334,26 @@ def change_password():
             current_password = request.form.get('current_password', '').strip()
             new_password = request.form.get('new_password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
-            
+
             if not all([current_password, new_password, confirm_password]):
                 flash('All fields are required', 'danger')
                 return render_template('change_password.html')
-            
+
             if new_password != confirm_password:
                 flash('New passwords do not match', 'danger')
                 return render_template('change_password.html')
-            
+
             if len(new_password) < 4:
                 flash('New password must be at least 4 characters', 'danger')
                 return render_template('change_password.html')
-            
+
             control = ParentalControl()
-            
+
             # Verify current password
             if not control.verify_password(current_password):
                 flash('Current password is incorrect', 'danger')
                 return render_template('change_password.html')
-            
+
             # Set new password
             if control.set_password(new_password):
                 flash('Password changed successfully', 'success')
@@ -1308,11 +1361,11 @@ def change_password():
                 return redirect(url_for('index'))
             else:
                 flash('Failed to change password', 'danger')
-                
+
         except Exception as e:
             logging.error(f"Error changing password: {e}")
             flash(f'Error changing password: {str(e)}', 'danger')
-    
+
     return render_template('change_password.html', current_page='settings')
 
 # =============================================================================
