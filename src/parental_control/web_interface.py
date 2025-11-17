@@ -1056,8 +1056,13 @@ def blocked():
     block_type = request.args.get('type', '')  # time_restriction, category, manual, age_restricted
 
     # Get admin's default language from database
-    pc = ParentalControl()
-    default_lang = pc.db.get_default_language()
+    try:
+        db = get_db_connection()
+        default_lang = db.get_default_language()
+        db.close()
+    except Exception as e:
+        logging.error(f"Error getting default language: {e}")
+        default_lang = 'he'  # Fallback to Hebrew
 
     # Get language from query parameter or use admin's default
     lang = request.args.get('lang', default_lang)
