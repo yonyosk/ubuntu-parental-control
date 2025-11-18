@@ -13,6 +13,10 @@
             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
                 Add Schedule
             </button>
+            <!-- DEBUG: Test button -->
+            <button type="button" class="btn btn-warning btn-sm" onclick="alert('JavaScript is working!')">
+                Test JS
+            </button>
         </div>
         <div class="card-body">
             {% if schedules %}
@@ -44,12 +48,12 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-schedule" 
-                                            data-id="{{ schedule.id }}">
+                                    <button class="btn btn-sm btn-outline-primary edit-schedule"
+                                            data-id="{{ schedule.doc_id }}">
                                         Edit
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-schedule" 
-                                            data-id="{{ schedule.id }}">
+                                    <button class="btn btn-sm btn-outline-danger delete-schedule"
+                                            data-id="{{ schedule.doc_id }}">
                                         Delete
                                     </button>
                                 </td>
@@ -198,7 +202,11 @@
 
 {% block scripts %}
 <script>
+console.log('=== Time Management JavaScript Loading ===');
 $(document).ready(function() {
+    console.log('Document ready! jQuery version:', $.fn.jquery);
+    console.log('Delete buttons found:', $('.delete-schedule').length);
+
     const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
     
     // Show add schedule modal
@@ -210,14 +218,34 @@ $(document).ready(function() {
         scheduleModal.show();
     });
     
-    // Edit schedule - for now just show modal (editing functionality can be added later)
-    $('.edit-schedule').on('click', function() {
-        alert('Schedule editing will be available in a future update. For now, please delete and recreate the schedule.');
+    // Delete schedule - using event delegation for dynamic content
+    $(document).on('click', '.delete-schedule', function(e) {
+        e.preventDefault();
+        const scheduleId = $(this).data('id');
+        const scheduleName = $(this).closest('tr').find('td:first').text().trim();
+
+        console.log('Delete clicked:', scheduleId, scheduleName);
+
+        if (!scheduleId) {
+            alert('Error: Schedule ID not found');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete the schedule "${scheduleName}"?`)) {
+            // Create a form and submit it
+            const form = $('<form>', {
+                'method': 'POST',
+                'action': `/delete_schedule/${scheduleId}`
+            });
+            $('body').append(form);
+            form.submit();
+        }
     });
-    
-    // Delete schedule - for now just show alert (delete functionality can be added later)
-    $('.delete-schedule').on('click', function() {
-        alert('Schedule deletion will be available in a future update.');
+
+    // Edit schedule - using event delegation
+    $(document).on('click', '.edit-schedule', function(e) {
+        e.preventDefault();
+        alert('Schedule editing will be available in a future update. For now, please delete and recreate the schedule.');
     });
     
     // Form validation

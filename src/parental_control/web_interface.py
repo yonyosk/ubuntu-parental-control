@@ -785,7 +785,10 @@ def time_management():
         daily_limit_minutes = daily_limit.get('time_limit_minutes', 480)
         usage_percent = min(100, (today_usage / daily_limit_minutes) * 100) if daily_limit_minutes > 0 else 0
         remaining_time = max(0, daily_limit_minutes - today_usage)
-        
+
+        # Get current access status (for time restriction enforcement)
+        is_allowed, status_reason = pc.time_manager.is_access_allowed()
+
         return render_template('time_management.html',
                              current_page='time_management',
                              daily_limit=daily_limit,
@@ -793,7 +796,9 @@ def time_management():
                              schedules=schedules,
                              usage_limits=usage_limits,
                              usage_percent=usage_percent,
-                             remaining_time=remaining_time)
+                             remaining_time=remaining_time,
+                             is_allowed=is_allowed,
+                             status_reason=status_reason)
                              
     except Exception as e:
         logging.error(f"Error in time_management route: {str(e)}")
@@ -805,7 +810,9 @@ def time_management():
                              schedules=[],
                              usage_limits={'daily_minutes': 480, 'weekly_minutes': 3360},
                              usage_percent=0,
-                             remaining_time=480)
+                             remaining_time=480,
+                             is_allowed=True,
+                             status_reason='Error loading status')
 
 @app.route('/reports')
 @login_required
@@ -971,13 +978,20 @@ def add_schedule():
     """Add a new time schedule"""
     try:
         pc = ParentalControl()
-        
+
+        # DEBUG: Log all form data
+        logging.info(f"=== ADD SCHEDULE DEBUG ===")
+        logging.info(f"Form data: {dict(request.form)}")
+        logging.info(f"Form lists: {request.form.lists()}")
+
         name = request.form.get('name', '').strip()
         start_time = request.form.get('start_time', '').strip()
         end_time = request.form.get('end_time', '').strip()
         days = request.form.getlist('days')  # List of selected days
         is_active = request.form.get('is_active') == 'on'
-        
+
+        logging.info(f"Parsed: name='{name}', start='{start_time}', end='{end_time}', days={days}, active={is_active}")
+
         if not name or not start_time or not end_time:
             flash('Schedule name, start time, and end time are required', 'danger')
             return redirect(url_for('time_management'))
@@ -999,11 +1013,78 @@ def add_schedule():
             flash(f'Schedule "{name}" added successfully', 'success')
         else:
             flash('Failed to add schedule', 'danger')
-            
+
     except Exception as e:
         logging.error(f"Error adding schedule: {e}")
         flash(f'Error adding schedule: {str(e)}', 'danger')
-    
+
+    return redirect(url_for('time_management'))
+
+@app.route('/delete_schedule/<int:schedule_id>', methods=['POST', 'DELETE'])
+@login_required
+def delete_schedule(schedule_id):
+    """Delete a time schedule"""
+    try:
+        pc = ParentalControl()
+        success = pc.db.delete_time_schedule(schedule_id)
+
+        if success:
+            flash(f'Schedule deleted successfully', 'success')
+        else:
+            flash('Failed to delete schedule', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error deleting schedule: {e}")
+        flash(f'Error deleting schedule: {str(e)}', 'danger')
+
+    return redirect(url_for('time_management'))
+
+@app.route('/update_schedule/<int:schedule_id>', methods=['POST'])
+@login_required
+def update_schedule(schedule_id):
+    """Update a time schedule"""
+    try:
+        pc = ParentalControl()
+
+        name = request.form.get('name', '').strip()
+        start_time = request.form.get('start_time', '').strip()
+        end_time = request.form.get('end_time', '').strip()
+        days = request.form.getlist('days')
+        is_active = request.form.get('is_active') == 'on'
+
+        if not name or not start_time or not end_time:
+            flash('Schedule name, start time, and end time are required', 'danger')
+            return redirect(url_for('time_management'))
+
+        # Convert day names to numbers
+        day_mapping = {
+            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+            'friday': 4, 'saturday': 5, 'sunday': 6
+        }
+        day_numbers = [day_mapping[day.lower()] for day in days if day.lower() in day_mapping]
+
+        if not day_numbers:
+            flash('At least one day must be selected', 'danger')
+            return redirect(url_for('time_management'))
+
+        success = pc.db.update_time_schedule(
+            schedule_id,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            days=day_numbers,
+            is_active=is_active
+        )
+
+        if success:
+            flash(f'Schedule "{name}" updated successfully', 'success')
+        else:
+            flash('Failed to update schedule', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error updating schedule: {e}")
+        flash(f'Error updating schedule: {str(e)}', 'danger')
+
     return redirect(url_for('time_management'))
 
 @app.route('/update_daily_limit', methods=['POST'])

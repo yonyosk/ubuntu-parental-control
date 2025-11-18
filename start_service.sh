@@ -60,6 +60,8 @@ class ParentalControlDaemon:
         self.pc = None
         self.running = False
         self.web_thread = None
+        self.time_enforcer = None
+        self.enforcer_thread = None
         
     def start_web_interface(self):
         '''Start Flask web interface in a separate thread'''
@@ -89,7 +91,15 @@ class ParentalControlDaemon:
                 logger.info('Blocking server started successfully')
             else:
                 logger.warning('Failed to start blocking server')
-            
+
+            # Start time enforcement daemon
+            logger.info('Starting time restriction enforcement daemon...')
+            from parental_control.time_enforcer import TimeEnforcementDaemon
+            self.time_enforcer = TimeEnforcementDaemon(check_interval=60)
+            self.enforcer_thread = threading.Thread(target=self.time_enforcer.start, daemon=True)
+            self.enforcer_thread.start()
+            logger.info('Time enforcement daemon started')
+
             # Write PID file
             with open('$PID_FILE', 'w') as f:
                 f.write(str(os.getpid()))
@@ -98,6 +108,7 @@ class ParentalControlDaemon:
             logger.info('Ubuntu Parental Control Service started successfully')
             logger.info('Web interface available at http://localhost:5000')
             logger.info('Blocking server running on port 8080')
+            logger.info('Time restriction enforcement active')
             
             # Keep the service running
             while self.running:
@@ -114,13 +125,20 @@ class ParentalControlDaemon:
     def stop(self):
         logger.info('Stopping Ubuntu Parental Control Service...')
         self.running = False
+
+        # Stop time enforcement daemon
+        if self.time_enforcer:
+            logger.info('Stopping time enforcement daemon...')
+            self.time_enforcer.stop()
+
+        # Stop blocking server
         if self.pc and self.pc.blocking_server:
             self.pc.stop_blocking_server()
-        
+
         # Remove PID file
         if os.path.exists('$PID_FILE'):
             os.remove('$PID_FILE')
-        
+
         logger.info('Service stopped')
 
 # Signal handlers
