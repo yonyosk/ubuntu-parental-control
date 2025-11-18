@@ -25,25 +25,39 @@ SERVICE_FILE="/etc/systemd/system/ubuntu-parental-control.service"
 # Stop existing service if running
 echo "1. Stopping existing service (if running)..."
 systemctl stop ubuntu-parental-control 2>/dev/null || echo "   - No existing service to stop"
+sleep 2
+
+# Kill any lingering processes
+pkill -f "parental_control" 2>/dev/null || true
+pkill -f "ubuntu-parental-control" 2>/dev/null || true
+sleep 1
 
 # Create installation directory
 echo ""
 echo "2. Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 
-# Copy files
+# Copy files (excluding venv and cache)
 echo ""
 echo "3. Copying files to $INSTALL_DIR..."
-cp -r src "$INSTALL_DIR/"
-cp -r templates "$INSTALL_DIR/"
-cp -r static "$INSTALL_DIR/"
-cp -r locales "$INSTALL_DIR/"
+
+# Kill any Python processes using files in the install directory
+echo "   - Ensuring no processes are using installation files..."
+pkill -f "$INSTALL_DIR" 2>/dev/null || true
+sleep 2
+
+# Copy files, excluding venv, cache, and other build artifacts
+rsync -a --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' --exclude='.git' \
+    src/ "$INSTALL_DIR/src/"
+rsync -a templates/ "$INSTALL_DIR/templates/"
+rsync -a static/ "$INSTALL_DIR/static/"
+rsync -a locales/ "$INSTALL_DIR/locales/"
 cp start_service.sh "$INSTALL_DIR/"
 cp setup_iptables.sh "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/start_service.sh"
 chmod +x "$INSTALL_DIR/setup_iptables.sh"
 
-echo "   ✓ Files copied"
+echo "   ✓ Files copied (excluding venv and cache files)"
 
 # Install systemd service
 echo ""
