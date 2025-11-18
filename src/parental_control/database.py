@@ -269,8 +269,8 @@ class ParentalControlDB:
         """Update a time schedule."""
         with self._lock:
             try:
-                Schedule = Query()
-                updated = self.time_schedules.update(updates, Schedule.id == schedule_id)
+                # Update by document ID, not by field query
+                updated = self.time_schedules.update(updates, doc_ids=[schedule_id])
                 self.db.storage.flush()  # Flush to disk immediately
                 return len(updated) > 0
             except Exception as e:
@@ -281,8 +281,8 @@ class ParentalControlDB:
         """Delete a time schedule."""
         with self._lock:
             try:
-                Schedule = Query()
-                removed = self.time_schedules.remove(Schedule.id == schedule_id)
+                # Delete by document ID, not by field query
+                removed = self.time_schedules.remove(doc_ids=[schedule_id])
                 self.db.storage.flush()  # Flush to disk immediately
                 return len(removed) > 0
             except Exception as e:
