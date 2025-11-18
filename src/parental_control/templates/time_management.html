@@ -44,12 +44,12 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-schedule" 
-                                            data-id="{{ schedule.id }}">
+                                    <button class="btn btn-sm btn-outline-primary edit-schedule"
+                                            data-id="{{ schedule.doc_id }}">
                                         Edit
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-schedule" 
-                                            data-id="{{ schedule.id }}">
+                                    <button class="btn btn-sm btn-outline-danger delete-schedule"
+                                            data-id="{{ schedule.doc_id }}">
                                         Delete
                                     </button>
                                 </td>
@@ -210,10 +210,18 @@ $(document).ready(function() {
         scheduleModal.show();
     });
     
-    // Delete schedule
-    $('.delete-schedule').on('click', function() {
+    // Delete schedule - using event delegation for dynamic content
+    $(document).on('click', '.delete-schedule', function(e) {
+        e.preventDefault();
         const scheduleId = $(this).data('id');
-        const scheduleName = $(this).closest('tr').find('td:first').text();
+        const scheduleName = $(this).closest('tr').find('td:first').text().trim();
+
+        console.log('Delete clicked:', scheduleId, scheduleName);
+
+        if (!scheduleId) {
+            alert('Error: Schedule ID not found');
+            return;
+        }
 
         if (confirm(`Are you sure you want to delete the schedule "${scheduleName}"?`)) {
             // Create a form and submit it
@@ -226,8 +234,9 @@ $(document).ready(function() {
         }
     });
 
-    // Edit schedule - for now show alert (full editing UI can be added later)
-    $('.edit-schedule').on('click', function() {
+    // Edit schedule - using event delegation
+    $(document).on('click', '.edit-schedule', function(e) {
+        e.preventDefault();
         alert('Schedule editing will be available in a future update. For now, please delete and recreate the schedule.');
     });
     
