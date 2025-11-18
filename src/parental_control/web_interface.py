@@ -978,13 +978,20 @@ def add_schedule():
     """Add a new time schedule"""
     try:
         pc = ParentalControl()
-        
+
+        # DEBUG: Log all form data
+        logging.info(f"=== ADD SCHEDULE DEBUG ===")
+        logging.info(f"Form data: {dict(request.form)}")
+        logging.info(f"Form lists: {request.form.lists()}")
+
         name = request.form.get('name', '').strip()
         start_time = request.form.get('start_time', '').strip()
         end_time = request.form.get('end_time', '').strip()
         days = request.form.getlist('days')  # List of selected days
         is_active = request.form.get('is_active') == 'on'
-        
+
+        logging.info(f"Parsed: name='{name}', start='{start_time}', end='{end_time}', days={days}, active={is_active}")
+
         if not name or not start_time or not end_time:
             flash('Schedule name, start time, and end time are required', 'danger')
             return redirect(url_for('time_management'))
