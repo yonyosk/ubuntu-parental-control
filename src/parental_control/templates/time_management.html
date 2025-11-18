@@ -13,6 +13,10 @@
             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
                 Add Schedule
             </button>
+            <!-- DEBUG: Test button -->
+            <button type="button" class="btn btn-warning btn-sm" onclick="alert('JavaScript is working!')">
+                Test JS
+            </button>
         </div>
         <div class="card-body">
             {% if schedules %}
@@ -198,7 +202,11 @@
 
 {% block scripts %}
 <script>
+console.log('=== Time Management JavaScript Loading ===');
 $(document).ready(function() {
+    console.log('Document ready! jQuery version:', $.fn.jquery);
+    console.log('Delete buttons found:', $('.delete-schedule').length);
+
     const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
     
     // Show add schedule modal
