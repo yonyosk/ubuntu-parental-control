@@ -1013,11 +1013,78 @@ def add_schedule():
             flash(f'Schedule "{name}" added successfully', 'success')
         else:
             flash('Failed to add schedule', 'danger')
-            
+
     except Exception as e:
         logging.error(f"Error adding schedule: {e}")
         flash(f'Error adding schedule: {str(e)}', 'danger')
-    
+
+    return redirect(url_for('time_management'))
+
+@app.route('/delete_schedule/<int:schedule_id>', methods=['POST', 'DELETE'])
+@login_required
+def delete_schedule(schedule_id):
+    """Delete a time schedule"""
+    try:
+        pc = ParentalControl()
+        success = pc.db.delete_time_schedule(schedule_id)
+
+        if success:
+            flash(f'Schedule deleted successfully', 'success')
+        else:
+            flash('Failed to delete schedule', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error deleting schedule: {e}")
+        flash(f'Error deleting schedule: {str(e)}', 'danger')
+
+    return redirect(url_for('time_management'))
+
+@app.route('/update_schedule/<int:schedule_id>', methods=['POST'])
+@login_required
+def update_schedule(schedule_id):
+    """Update a time schedule"""
+    try:
+        pc = ParentalControl()
+
+        name = request.form.get('name', '').strip()
+        start_time = request.form.get('start_time', '').strip()
+        end_time = request.form.get('end_time', '').strip()
+        days = request.form.getlist('days')
+        is_active = request.form.get('is_active') == 'on'
+
+        if not name or not start_time or not end_time:
+            flash('Schedule name, start time, and end time are required', 'danger')
+            return redirect(url_for('time_management'))
+
+        # Convert day names to numbers
+        day_mapping = {
+            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+            'friday': 4, 'saturday': 5, 'sunday': 6
+        }
+        day_numbers = [day_mapping[day.lower()] for day in days if day.lower() in day_mapping]
+
+        if not day_numbers:
+            flash('At least one day must be selected', 'danger')
+            return redirect(url_for('time_management'))
+
+        success = pc.db.update_time_schedule(
+            schedule_id,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            days=day_numbers,
+            is_active=is_active
+        )
+
+        if success:
+            flash(f'Schedule "{name}" updated successfully', 'success')
+        else:
+            flash('Failed to update schedule', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error updating schedule: {e}")
+        flash(f'Error updating schedule: {str(e)}', 'danger')
+
     return redirect(url_for('time_management'))
 
 @app.route('/update_daily_limit', methods=['POST'])
