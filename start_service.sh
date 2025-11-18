@@ -135,9 +135,4 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # Start the daemon
 daemon.start()
-" &
-
-# Get the background process PID and save it
-echo $! > "$PID_FILE"
-
-echo "$(date): Ubuntu Parental Control Service started with PID $(cat $PID_FILE)"
+"
