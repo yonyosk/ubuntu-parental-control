@@ -18,19 +18,22 @@ fi
 echo "✓ Running as root"
 echo ""
 
-# Fix any broken package installations first
-echo "Checking for broken packages..."
-if dpkg -l | grep -q "^iU\|^iF"; then
-    echo "   - Fixing broken packages..."
-    dpkg --configure -a --force-all 2>/dev/null || true
-    apt-get install -f -y 2>/dev/null || true
+# Check for conflicting ubuntu-parental-control Debian package FIRST
+# (before trying to fix broken packages, since this package is fundamentally broken)
+echo "Checking for package conflicts..."
+if dpkg -l | grep -q "ubuntu-parental-control"; then
+    echo "   - Removing conflicting Debian package ubuntu-parental-control..."
+    # Force remove the package and its configuration
+    dpkg --remove --force-remove-reinstreq ubuntu-parental-control 2>/dev/null || true
+    apt-get remove -y ubuntu-parental-control 2>/dev/null || true
+    apt-get purge -y ubuntu-parental-control 2>/dev/null || true
 fi
 
-# Check for conflicting ubuntu-parental-control Debian package
-if dpkg -l | grep -q "^ii.*ubuntu-parental-control"; then
-    echo "   - Removing conflicting Debian package ubuntu-parental-control..."
-    apt-get remove -y ubuntu-parental-control 2>/dev/null || true
+# Now fix any remaining broken packages
+if dpkg -l | grep -q "^iU\|^iF"; then
+    echo "   - Fixing remaining broken packages..."
     dpkg --configure -a 2>/dev/null || true
+    apt-get install -f -y 2>/dev/null || true
 fi
 echo "✓ Package system clean"
 echo ""
@@ -95,15 +98,6 @@ read -p "Install iptables-persistent to save rules across reboots? [Y/n] " -n 1 
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     echo "Installing iptables-persistent..."
-
-    # Check for conflicting ubuntu-parental-control Debian package
-    if dpkg -l | grep -q "^ii.*ubuntu-parental-control"; then
-        echo "   - Removing conflicting Debian package..."
-        apt-get remove -y ubuntu-parental-control 2>/dev/null || true
-        dpkg --configure -a --force-all 2>/dev/null || true
-    fi
-
-    # Install iptables-persistent
     apt-get update -qq
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent
 
