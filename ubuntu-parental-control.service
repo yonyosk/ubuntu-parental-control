@@ -1,36 +1,30 @@
 [Unit]
 Description=Ubuntu Parental Control Service
-Documentation=https://github.com/YOUR_USERNAME/ubuntu-parental-control
 After=network.target
-Wants=network.target
 
 [Service]
-Type=forking
+Type=simple
 User=root
-Group=root
 WorkingDirectory=/opt/ubuntu-parental-control
+
+# Set up iptables BEFORE starting the service
+ExecStartPre=/opt/ubuntu-parental-control/setup_iptables.sh
+
+# Start the service
 ExecStart=/opt/ubuntu-parental-control/start_service.sh
-ExecStop=/opt/ubuntu-parental-control/stop_service.sh
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=always
+
+# Clean up iptables when stopping
+ExecStopPost=/usr/sbin/iptables -t nat -F PARENTAL_REDIRECT
+ExecStopPost=/usr/sbin/iptables -t nat -D OUTPUT -j PARENTAL_REDIRECT
+ExecStopPost=/usr/sbin/iptables -t nat -X PARENTAL_REDIRECT
+
+# Restart on failure
+Restart=on-failure
 RestartSec=10
-KillMode=mixed
-TimeoutStopSec=30
 
-# Environment
-Environment=PYTHONPATH=/opt/ubuntu-parental-control/src
-Environment=PARENTAL_CONTROL_CONFIG=/var/lib/ubuntu-parental/control.json
-
-# Security settings
-NoNewPrivileges=false
-PrivateTmp=true
-ProtectSystem=false
-ProtectHome=false
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=ubuntu-parental-control
+# Resource limits (prevent OOM)
+MemoryMax=512M
+MemoryHigh=384M
 
 [Install]
 WantedBy=multi-user.target

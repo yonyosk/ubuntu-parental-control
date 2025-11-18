@@ -1,74 +1,123 @@
 #!/bin/bash
-# Ubuntu Parental Control Service Installation Script
+# Installation script for Ubuntu Parental Control with automatic iptables setup
 
 set -e
 
-echo "=== Ubuntu Parental Control Service Installation ==="
+echo "=========================================="
+echo "Ubuntu Parental Control - Installation"
+echo "=========================================="
+echo ""
 
-# Check if running as root
+# Check root
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run this script as root (use sudo)"
+    echo "❌ Error: This script must be run as root"
+    echo "   Run: sudo ./install_service.sh"
     exit 1
 fi
 
-# Configuration
-INSTALL_DIR="/opt/ubuntu-parental-control"
-SERVICE_NAME="ubuntu-parental-control"
-CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-echo "1. Creating installation directory..."
-mkdir -p "$INSTALL_DIR"
-mkdir -p /var/lib/ubuntu-parental
-mkdir -p /var/log
-
-echo "2. Copying files to installation directory..."
-cp -r "$CURRENT_DIR/src" "$INSTALL_DIR/"
-cp "$CURRENT_DIR/start_service.sh" "$INSTALL_DIR/"
-cp "$CURRENT_DIR/stop_service.sh" "$INSTALL_DIR/"
-
-echo "3. Setting permissions..."
-chmod +x "$INSTALL_DIR/start_service.sh"
-chmod +x "$INSTALL_DIR/stop_service.sh"
-chown -R root:root "$INSTALL_DIR"
-
-echo "4. Installing systemd service..."
-cp "$CURRENT_DIR/ubuntu-parental-control.service" "/etc/systemd/system/"
-systemctl daemon-reload
-
-echo "5. Enabling service for auto-start..."
-systemctl enable "$SERVICE_NAME"
-
-echo "6. Starting service..."
-systemctl start "$SERVICE_NAME"
-
-echo "7. Checking service status..."
-sleep 2
-systemctl status "$SERVICE_NAME" --no-pager
-
+echo "✓ Running as root"
 echo ""
-echo "=== Installation Complete! ==="
+
+# Install location
+INSTALL_DIR="/opt/ubuntu-parental-control"
+SERVICE_FILE="/etc/systemd/system/ubuntu-parental-control.service"
+
+# Stop existing service if running
+echo "1. Stopping existing service (if running)..."
+systemctl stop ubuntu-parental-control 2>/dev/null || echo "   - No existing service to stop"
+
+# Create installation directory
+echo ""
+echo "2. Creating installation directory..."
+mkdir -p "$INSTALL_DIR"
+
+# Copy files
+echo ""
+echo "3. Copying files to $INSTALL_DIR..."
+cp -r src "$INSTALL_DIR/"
+cp -r templates "$INSTALL_DIR/"
+cp -r static "$INSTALL_DIR/"
+cp -r locales "$INSTALL_DIR/"
+cp start_service.sh "$INSTALL_DIR/"
+cp setup_iptables.sh "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/start_service.sh"
+chmod +x "$INSTALL_DIR/setup_iptables.sh"
+
+echo "   ✓ Files copied"
+
+# Install systemd service
+echo ""
+echo "4. Installing systemd service..."
+cp ubuntu-parental-control.service "$SERVICE_FILE"
+systemctl daemon-reload
+echo "   ✓ Service installed"
+
+# Enable service
+echo ""
+echo "5. Enabling service to start on boot..."
+systemctl enable ubuntu-parental-control
+echo "   ✓ Service enabled"
+
+# Install iptables-persistent (optional but recommended)
+echo ""
+read -p "Install iptables-persistent to save rules across reboots? [Y/n] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+    echo "Installing iptables-persistent..."
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent
+    echo "   ✓ iptables-persistent installed"
+fi
+
+# Start service
+echo ""
+echo "6. Starting service..."
+systemctl start ubuntu-parental-control
+sleep 3
+
+# Check status
+echo ""
+echo "7. Checking service status..."
+if systemctl is-active --quiet ubuntu-parental-control; then
+    echo "   ✓ Service is running"
+else
+    echo "   ⚠ Service failed to start. Checking logs..."
+    journalctl -u ubuntu-parental-control -n 20 --no-pager
+    exit 1
+fi
+
+# Verify iptables
+echo ""
+echo "8. Verifying iptables setup..."
+REFS=$(iptables -t nat -L PARENTAL_REDIRECT -n -v 2>/dev/null | grep "references" | grep -o "[0-9]* references")
+if [[ "$REFS" == "1 references" ]]; then
+    echo "   ✓ iptables configured correctly ($REFS)"
+else
+    echo "   ⚠ Warning: iptables shows $REFS - expected 1 references"
+fi
+
+# Save iptables rules if iptables-persistent is installed
+if command -v netfilter-persistent &> /dev/null; then
+    echo ""
+    echo "9. Saving iptables rules..."
+    netfilter-persistent save
+    echo "   ✓ Rules saved (will persist across reboots)"
+fi
+
+# Summary
+echo ""
+echo "=========================================="
+echo "✅ INSTALLATION COMPLETE"
+echo "=========================================="
 echo ""
 echo "Service Status:"
-echo "  • Service Name: $SERVICE_NAME"
-echo "  • Installation Dir: $INSTALL_DIR"
-echo "  • Config File: /var/lib/ubuntu-parental/control.json"
-echo "  • Log File: /var/log/ubuntu-parental-control.log"
+systemctl status ubuntu-parental-control --no-pager -l | head -10
 echo ""
-echo "Service Commands:"
-echo "  • Start:   sudo systemctl start $SERVICE_NAME"
-echo "  • Stop:    sudo systemctl stop $SERVICE_NAME"
-echo "  • Restart: sudo systemctl restart $SERVICE_NAME"
-echo "  • Status:  sudo systemctl status $SERVICE_NAME"
-echo "  • Logs:    sudo journalctl -u $SERVICE_NAME -f"
+echo "Access the admin panel at: http://localhost:5000"
 echo ""
-echo "Web Interface:"
-echo "  • The blocking server is now running automatically"
-echo "  • Access web interface: http://localhost:5000"
-echo "  • Blocked sites will show friendly pages"
-echo ""
-echo "The Ubuntu Parental Control service will now:"
-echo "  ✅ Start automatically at boot"
-echo "  ✅ Run the blocking server continuously"
-echo "  ✅ Show friendly block pages for blocked sites"
-echo "  ✅ Restart automatically if it crashes"
+echo "Useful commands:"
+echo "  sudo systemctl status ubuntu-parental-control   # Check status"
+echo "  sudo systemctl restart ubuntu-parental-control  # Restart service"
+echo "  sudo systemctl stop ubuntu-parental-control     # Stop service"
+echo "  sudo journalctl -u ubuntu-parental-control -f   # View logs"
 echo ""
