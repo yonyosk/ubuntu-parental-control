@@ -45,6 +45,13 @@ CA_KEY="/opt/ubuntu-parental-control/certs/ca.key"
 
 if [ -f "$CA_CERT" ] && [ -f "$CA_KEY" ]; then
     echo "   ✓ Root CA already exists, skipping..."
+
+    # Copy certificate to repo directory even if it already exists
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ] && [ ! -f "$SCRIPT_DIR/ca.crt" ]; then
+        cp "$CA_CERT" "$SCRIPT_DIR/ca.crt"
+        chmod 644 "$SCRIPT_DIR/ca.crt"
+    fi
 else
     echo "   - Setting up Root CA for HTTPS blocking..."
 
@@ -84,13 +91,6 @@ else
     echo "   2. Authorities → Import → Select: $SCRIPT_DIR/ca.crt"
     echo "   3. Check 'Trust this CA to identify websites'"
     echo ""
-else
-    # Copy certificate to repo directory even if it already exists
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ] && [ ! -f "$SCRIPT_DIR/ca.crt" ]; then
-        cp "$CA_CERT" "$SCRIPT_DIR/ca.crt"
-        chmod 644 "$SCRIPT_DIR/ca.crt"
-    fi
 fi
 
 # Install location
