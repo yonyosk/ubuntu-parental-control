@@ -94,18 +94,23 @@ echo "   ✓ Service enabled"
 
 # Install iptables-persistent (optional but recommended)
 echo ""
-read -p "Install iptables-persistent to save rules across reboots? [Y/n] " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-    echo "Installing iptables-persistent..."
-    apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent
+# Check if already installed
+if dpkg -l | grep -q "^ii.*iptables-persistent"; then
+    echo "iptables-persistent already installed, skipping..."
+else
+    read -p "Install iptables-persistent to save rules across reboots? [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+        echo "Installing iptables-persistent..."
+        apt-get update -qq
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent
 
-    # Verify installation
-    if dpkg -l | grep -q "^ii.*iptables-persistent"; then
-        echo "   ✓ iptables-persistent installed"
-    else
-        echo "   ⚠ iptables-persistent installation had issues, but continuing..."
+        # Verify installation
+        if dpkg -l | grep -q "^ii.*iptables-persistent"; then
+            echo "   ✓ iptables-persistent installed"
+        else
+            echo "   ⚠ iptables-persistent installation had issues, but continuing..."
+        fi
     fi
 fi
 
@@ -113,7 +118,14 @@ fi
 echo ""
 echo "6. Starting service..."
 systemctl start ubuntu-parental-control
-sleep 3
+
+# Wait for service to be active (max 5 seconds)
+for i in {1..10}; do
+    if systemctl is-active --quiet ubuntu-parental-control; then
+        break
+    fi
+    sleep 0.5
+done
 
 # Check status
 echo ""
