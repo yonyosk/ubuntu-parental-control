@@ -1,81 +1,84 @@
 # HTTPS Blocking Setup
 
-## The Challenge
+## Overview
 
-When blocking HTTPS sites (like `https://facebook.com`), users will see an SSL certificate warning because:
-1. The iptables redirect sends HTTPS traffic (port 443) to the blocking server (port 8080)
-2. The blocking server runs HTTP, not HTTPS
-3. The browser expects an HTTPS response with a valid certificate
+Ubuntu Parental Control now supports **seamless HTTPS blocking** with dynamic certificate generation. When users try to access blocked HTTPS sites, they see the blocking page without certificate warnings (after initial setup).
 
-## Solution Options
+## How It Works
 
-### Option 1: Accept Certificate Warnings (Current)
+The system uses a two-tier approach:
 
-**Pros:**
-- Simple, works out of the box
-- No additional setup required
+1. **HTTP Blocking (Port 8080)**: Handles HTTP traffic
+   - iptables redirects port 80 → 8080
+   - Simple HTTP server serves blocking pages
 
-**Cons:**
-- Users see "Your connection is not private" warnings
-- Requires clicking through the warning to see the blocking page
+2. **HTTPS Blocking (Port 8443)**: Handles HTTPS traffic
+   - iptables redirects port 443 → 8443
+   - HTTPS server with SNI (Server Name Indication)
+   - Dynamically generates SSL certificates for each blocked domain
+   - Signs certificates with custom root CA
 
-**How it works:**
-1. User tries to access `https://facebook.com`
-2. Browser shows certificate warning
-3. User clicks "Advanced" → "Accept the Risk"
-4. User sees the Hebrew blocking page
+## Setup
 
-### Option 2: Install Custom Root CA (Recommended)
-
-This option installs a custom root certificate authority that the system (and browsers) trust.
-
-**Pros:**
-- No certificate warnings for blocked HTTPS sites
-- Professional, seamless experience
-- Works system-wide (for Chrome, system tools, etc.)
-
-**Cons:**
-- Requires manual Firefox configuration
-- More complex setup
-- Security consideration: Anyone with access to the CA private key can create trusted certificates
-
-**Setup:**
+### Step 1: Install Root CA (Required for HTTPS)
 
 ```bash
-# 1. Run the setup script
 sudo ./setup_root_ca.sh
+```
 
-# 2. For Firefox users, manually import the certificate:
-#    - Open Firefox Settings → Privacy & Security → Certificates
-#    - Click "View Certificates" → "Authorities" → "Import"
-#    - Select: /opt/ubuntu-parental-control/certs/ca.crt
-#    - Check "Trust this CA to identify websites"
+This creates a custom root certificate authority that will be used to sign domain certificates.
 
-# 3. Restart the service
+**What it does:**
+- Generates 4096-bit RSA root CA certificate (10-year validity)
+- Installs as trusted system-wide certificate
+- Stores CA files in `/opt/ubuntu-parental-control/certs/`
+
+### Step 2: Firefox Configuration (If using Firefox)
+
+Firefox uses its own certificate store, so you need to manually import the CA:
+
+1. Open Firefox → Settings → Privacy & Security → Certificates
+2. Click "View Certificates" → "Authorities" → "Import"
+3. Select: `/opt/ubuntu-parental-control/certs/ca.crt`
+4. Check "Trust this CA to identify websites"
+5. Click OK
+
+### Step 3: Restart Service
+
+```bash
 sudo systemctl restart ubuntu-parental-control
 ```
 
-**Note:** This generates a root CA certificate that is trusted system-wide. Keep `/opt/ubuntu-parental-control/certs/ca.key` secure!
+The service will now start both HTTP and HTTPS blocking servers.
 
-### Option 3: HTTPS Blocking Server (Future Enhancement)
+## How Dynamic Certificate Generation Works
 
-A more advanced solution would be to:
-1. Run the blocking server with HTTPS support
-2. Dynamically generate certificates for each blocked domain
-3. Sign them with the custom root CA
+When a user accesses a blocked HTTPS site (e.g., `https://facebook.com`):
 
-This requires:
-- Python SSL/TLS library support
-- On-the-fly certificate generation
-- More complex server implementation
+1. Browser makes HTTPS connection to facebook.com
+2. DNS resolves to 127.0.0.1 (from /etc/hosts)
+3. iptables redirects port 443 → 8443
+4. HTTPS blocking server receives connection
+5. SNI callback detects requested domain ("facebook.com")
+6. Certificate generator creates/retrieves certificate for facebook.com
+7. Certificate is signed by root CA
+8. Browser validates certificate chain (root CA is trusted)
+9. No certificate warning - blocking page displays seamlessly
 
-This is planned for future development.
+## Certificate Management
 
-## Current Recommendation
+**Certificate Storage:**
+- Root CA: `/opt/ubuntu-parental-control/certs/ca.crt` and `ca.key`
+- Domain certs: `/opt/ubuntu-parental-control/certs/domains/*.crt`
 
-For most users, **Option 1** (accept certificate warnings) is sufficient for testing.
+**Automatic Cleanup:**
+Certificates older than 30 days are automatically cleaned up to save disk space.
 
-For production use or better user experience, use **Option 2** (install custom root CA).
+**Manual Certificate Generation:**
+```bash
+cd /opt/ubuntu-parental-control/src
+python3 -m parental_control.cert_generator
+```
 
 ## Testing
 

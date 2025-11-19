@@ -450,7 +450,7 @@ class ParentalControl:
         
         return True, "Access allowed"
     
-    def start_blocking_server(self, port=8080):
+    def start_blocking_server(self, port=8080, https_port=8443, use_https=True):
         """Start the blocking server for friendly block pages"""
         try:
             from .blocking_server import BlockingServer
@@ -459,22 +459,25 @@ class ParentalControl:
                 logger.info("Blocking server already running")
                 return True
 
-            # Start the blocking server
-            self.blocking_server = BlockingServer(self, port)
+            # Start the blocking server with HTTP and HTTPS support
+            self.blocking_server = BlockingServer(self, port=port, https_port=https_port, use_https=use_https)
             success = self.blocking_server.start()
 
             if success:
-                logger.info(f"Blocking server started on port {port}")
+                logger.info(f"Blocking server started on HTTP port {port}")
+                if use_https:
+                    logger.info(f"Blocking server started on HTTPS port {https_port}")
+
                 # Update hosts file to redirect blocked domains to 127.0.0.1
                 self.update_hosts_for_blocking_server(port)
 
-                # Enable port redirection (80/443 -> 8080) using iptables
+                # Enable port redirection (80 -> 8080, 443 -> 8443) using iptables
                 if not self.port_redirector:
                     self.port_redirector = PortRedirector(blocking_server_port=port)
 
                 redirect_success = self.port_redirector.enable_redirection()
                 if redirect_success:
-                    logger.info("Port redirection enabled (80/443 -> 8080)")
+                    logger.info(f"Port redirection enabled (80 -> {port}, 443 -> {https_port})")
                 else:
                     logger.warning("Failed to enable port redirection - blocked pages may not display")
 
