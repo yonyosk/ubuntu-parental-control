@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blocking Page Demo - Ubuntu Parental Control</title>
+    <link rel="stylesheet" href="static/css/design-system.css">
+    <link rel="stylesheet" href="static/css/components.css">
+    <style>
+        /* Page-specific styles */
+        .blocked-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+        }
+
+        .blocked-header {
+            padding: var(--space-6) 0;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+        }
+
+        .blocked-logo {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .blocked-tagline {
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .blocked-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8) var(--space-4);
+        }
+
+        .blocked-card {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .blocked-icon-large {
+            margin: 0 auto var(--space-6);
+        }
+
+        .blocked-title {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            margin-bottom: var(--space-4);
+            color: var(--color-text);
+        }
+
+        .blocked-domain {
+            display: inline-block;
+            padding: var(--space-2) var(--space-4);
+            background-color: var(--color-bg-tertiary);
+            border-radius: var(--radius-lg);
+            font-family: monospace;
+            font-size: var(--text-lg);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-6);
+            word-break: break-all;
+        }
+
+        .blocked-message {
+            font-size: var(--text-lg);
+            line-height: var(--leading-relaxed);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-6);
+        }
+
+        .blocked-footer {
+            padding: var(--space-6) 0;
+            text-align: center;
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-4);
+            justify-content: center;
+            margin-top: var(--space-6);
+            flex-wrap: wrap;
+        }
+
+        .theme-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+        }
+
+        .theme-switcher h4 {
+            margin: 0 0 var(--space-2) 0;
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: var(--space-2);
+            flex-direction: column;
+        }
+
+        .theme-btn {
+            padding: var(--space-2) var(--space-3);
+            border: 2px solid var(--color-border);
+            background: var(--color-bg);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: var(--text-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .theme-btn:hover {
+            border-color: var(--color-primary);
+            background: var(--color-bg-secondary);
+        }
+
+        .theme-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Switcher -->
+    <div class="theme-switcher">
+        <h4>🎨 Try Themes</h4>
+        <div class="theme-buttons">
+            <button class="theme-btn active" onclick="switchTheme('default')">Default</button>
+            <button class="theme-btn" onclick="switchTheme('dark')">Dark</button>
+            <button class="theme-btn" onclick="switchTheme('kids')">Kids</button>
+            <button class="theme-btn" onclick="switchTheme('teens')">Teens</button>
+        </div>
+    </div>
+
+    <div class="blocked-page">
+        <!-- Header -->
+        <header class="blocked-header">
+            <div class="container-sm">
+                <div class="blocked-logo">
+                    🛡️ Ubuntu Parental Control
+                </div>
+                <div class="blocked-tagline">
+                    Keeping you safe online
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="blocked-content">
+            <div class="blocked-card">
+                <!-- Icon -->
+                <div class="icon-container icon-category icon-container-lg blocked-icon-large">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+
+                <!-- Title -->
+                <h1 class="blocked-title">Content Blocked</h1>
+
+                <!-- Category Badge -->
+                <div class="mb-4">
+                    <span class="badge badge-blocked">Social Media & Networking</span>
+                </div>
+
+                <!-- Blocked Domain -->
+                <div class="blocked-domain">youtube.com</div>
+
+                <!-- Message -->
+                <div class="blocked-message">
+                    Social media sites can be distracting and may not be appropriate during certain times.
+                </div>
+
+                <!-- Why is this blocked? -->
+                <details class="card card-info mt-6" style="text-align: left;">
+                    <summary style="cursor: pointer; font-weight: 600; padding: var(--space-2);">
+                        Why is this blocked?
+                    </summary>
+                    <div class="mt-4">
+                        <p class="text-secondary">
+                            Websites in the "Social Media & Networking" category are blocked to help you:
+                        </p>
+                        <ul class="list-disc mt-4">
+                            <li>Stay focused on important tasks</li>
+                            <li>Avoid distracting or inappropriate content</li>
+                            <li>Maintain healthy internet habits</li>
+                            <li>Protect your privacy and safety online</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <!-- Alternative Suggestions -->
+                <div class="card mt-6">
+                    <div class="card-title">Try These Instead</div>
+                    <p class="text-secondary mb-4">Here are some educational alternatives you can explore:</p>
+
+                    <div class="alternatives-grid">
+                        <a href="https://www.khanacademy.org" target="_blank" class="alternative-item" style="text-decoration: none;">
+                            <div class="alternative-name">Khan Academy</div>
+                            <div class="alternative-description">Free educational courses on many subjects</div>
+                            <span class="alternative-link">Visit →</span>
+                        </a>
+                        <a href="https://scratch.mit.edu" target="_blank" class="alternative-item" style="text-decoration: none;">
+                            <div class="alternative-name">Scratch</div>
+                            <div class="alternative-description">Learn programming through interactive projects</div>
+                            <span class="alternative-link">Visit →</span>
+                        </a>
+                        <a href="https://www.nasa.gov/kidsclub" target="_blank" class="alternative-item" style="text-decoration: none;">
+                            <div class="alternative-name">NASA Kids Club</div>
+                            <div class="alternative-description">Educational games and activities about space</div>
+                            <span class="alternative-link">Visit →</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Educational Content -->
+                <div class="card card-info mt-6">
+                    <div style="display: flex; gap: var(--space-4); align-items: start;">
+                        <div style="font-size: 2rem;">💡</div>
+                        <div style="flex: 1; text-align: left;">
+                            <div class="font-semibold mb-2">Did You Know?</div>
+                            <p class="text-secondary">Taking regular breaks from screens can help improve your focus and creativity!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="alert('This is a demo - access requests would be sent to your parent')">
+                        Request Access
+                    </button>
+                    <button class="btn btn-ghost" onclick="alert('This is a demo - reports would be sent to your parent')">
+                        Report Error
+                    </button>
+                    <button class="btn btn-secondary" onclick="history.back()">
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="blocked-footer">
+            <div class="container-sm">
+                <p>
+                    If you believe this is a mistake, please contact your parent or guardian.
+                </p>
+                <p class="mt-2 text-tertiary">
+                    Ubuntu Parental Control © 2025
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function switchTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

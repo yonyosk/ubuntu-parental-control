@@ -80,13 +80,10 @@ class ParentalControlDaemon:
             logger.info('Starting web interface thread...')
             self.web_thread = threading.Thread(target=self.start_web_interface, daemon=True)
             self.web_thread.start()
-            
-            # Give web interface time to start
-            time.sleep(2)
-            
-            # Start blocking server automatically
+
+            # Start blocking server automatically (HTTP on 8080, HTTPS on 8443)
             logger.info('Starting blocking server...')
-            success = self.pc.start_blocking_server(port=8080)
+            success = self.pc.start_blocking_server(port=8080, https_port=8443, use_https=True)
             if success:
                 logger.info('Blocking server started successfully')
             else:
@@ -153,9 +150,4 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # Start the daemon
 daemon.start()
-" &
-
-# Get the background process PID and save it
-echo $! > "$PID_FILE"
-
-echo "$(date): Ubuntu Parental Control Service started with PID $(cat $PID_FILE)"
+"

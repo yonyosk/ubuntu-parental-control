@@ -226,8 +226,12 @@ class HostsFileManager:
                     new_lines.append(f"# Blocking {len(clean_domains)} domains")
                     
                     # Add blocked domains (sorted for consistency)
+                    # Add both domain and www.domain variant for better coverage
                     for domain in sorted(clean_domains):
                         new_lines.append(f"127.0.0.1\t{domain}")
+                        # Add www variant if domain doesn't already start with www
+                        if not domain.startswith('www.'):
+                            new_lines.append(f"127.0.0.1\twww.{domain}")
                     
                     new_lines.append(self.end_marker)
                     new_lines.append("")  # Empty line after our section

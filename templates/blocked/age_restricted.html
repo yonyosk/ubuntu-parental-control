@@ -1,0 +1,247 @@
+{% extends "blocked/base_blocked.html" %}
+
+{% block title %}{{ t('age_restricted.title', lang) }}{% endblock %}
+
+{% block content %}
+<!-- Icon -->
+<div class="icon-container icon-warning icon-container-lg blocked-icon-large">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+</div>
+
+<!-- Title -->
+<h1 class="blocked-title">{{ t('age_restricted.title', lang) }}</h1>
+
+<!-- Age Badge -->
+{% if age_requirement %}
+<div class="mb-4">
+    <span class="badge badge-warning" style="font-size: var(--text-lg); padding: var(--space-2) var(--space-4);">
+        {{ age_requirement }}+ {{ t('age_restricted.only', lang) }}
+    </span>
+</div>
+{% endif %}
+
+<!-- Blocked Domain -->
+<div class="blocked-domain">{{ blocked_url }}</div>
+
+<!-- Message -->
+<div class="blocked-message">
+    {% if block_reason %}
+        {{ block_reason }}
+    {% else %}
+        {{ t('age_restricted.message_default', lang) }}
+    {% endif %}
+</div>
+
+<!-- Why is this protected? -->
+<div class="card card-warning mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+    <div class="card-title" style="display: flex; align-items: center; gap: var(--space-2); {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+        <span>🛡️</span>
+        <span>{{ t('age_restricted.why_protected', lang) }}</span>
+    </div>
+    <p class="text-secondary mb-4">
+        {{ t('age_restricted.protection_text', lang) }}
+    </p>
+    <ul class="list-disc">
+        <li>{{ t('age_restricted.reasons.not_suitable', lang) }}</li>
+        <li>{{ t('age_restricted.reasons.harmful', lang) }}</li>
+        <li>{{ t('age_restricted.reasons.adult_themes', lang) }}</li>
+        <li>{{ t('age_restricted.reasons.beyond_understanding', lang) }}</li>
+    </ul>
+    <p class="text-secondary mt-4">
+        {{ t('age_restricted.protection_care', lang) }}
+    </p>
+</div>
+
+<!-- Online Safety Tips -->
+<div class="card card-info mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+    <div class="card-title" style="display: flex; align-items: center; gap: var(--space-2); {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+        <span>💡</span>
+        <span>{{ t('age_restricted.safety_tips', lang) }}</span>
+    </div>
+    <ul class="list-disc">
+        <li>{{ t('age_restricted.tips.ask_parent', lang) }}</li>
+        <li>{{ t('age_restricted.tips.no_personal_info', lang) }}</li>
+        <li>{{ t('age_restricted.tips.report_uncomfortable', lang) }}</li>
+        <li>{{ t('age_restricted.tips.not_all_true', lang) }}</li>
+        <li>{{ t('age_restricted.tips.age_appropriate', lang) }}</li>
+    </ul>
+</div>
+
+<!-- Educational Resources -->
+{% if resources %}
+<div class="card mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+    <div class="card-title">{{ t('age_restricted.learn_more', lang) }}</div>
+    <p class="text-secondary mb-4">{{ t('age_restricted.resources_text', lang) }}</p>
+    <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        {% for resource in resources %}
+        <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer"
+           style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background-color: var(--color-bg-secondary); border-radius: var(--radius-md); text-decoration: none; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+            <div style="{% if lang_direction == 'rtl' %}text-align: right;{% endif %}">
+                <div class="font-semibold">{{ resource.name }}</div>
+                <div class="text-sm text-secondary">{{ resource.description }}</div>
+            </div>
+            <span style="color: var(--color-primary);">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+    <div class="card-title">{{ t('age_restricted.learn_more', lang) }}</div>
+    <p class="text-secondary mb-4">{{ t('age_restricted.resources_text', lang) }}</p>
+    <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <a href="https://www.commonsensemedia.org/articles/parents-ultimate-guide-to-parental-controls"
+           target="_blank" rel="noopener noreferrer"
+           style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background-color: var(--color-bg-secondary); border-radius: var(--radius-md); text-decoration: none; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+            <div style="{% if lang_direction == 'rtl' %}text-align: right;{% endif %}">
+                <div class="font-semibold">Common Sense Media</div>
+                <div class="text-sm text-secondary">Age-appropriate media ratings and guides</div>
+            </div>
+            <span style="color: var(--color-primary);">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
+        </a>
+        <a href="https://www.netsmartz.org/Home"
+           target="_blank" rel="noopener noreferrer"
+           style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background-color: var(--color-bg-secondary); border-radius: var(--radius-md); text-decoration: none; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+            <div style="{% if lang_direction == 'rtl' %}text-align: right;{% endif %}">
+                <div class="font-semibold">NetSmartz</div>
+                <div class="text-sm text-secondary">Internet safety education for kids</div>
+            </div>
+            <span style="color: var(--color-primary);">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
+        </a>
+        <a href="https://www.internetsafety101.org/"
+           target="_blank" rel="noopener noreferrer"
+           style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background-color: var(--color-bg-secondary); border-radius: var(--radius-md); text-decoration: none; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+            <div style="{% if lang_direction == 'rtl' %}text-align: right;{% endif %}">
+                <div class="font-semibold">Internet Safety 101</div>
+                <div class="text-sm text-secondary">Comprehensive safety resource guide</div>
+            </div>
+            <span style="color: var(--color-primary);">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Talk to Parents -->
+<div class="card card-info mt-6">
+    <div style="display: flex; gap: var(--space-4); align-items: center; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+        <div style="font-size: 2.5rem;">👨‍👩‍👧‍👦</div>
+        <div style="flex: 1; text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+            <div class="font-semibold mb-2">{{ t('age_restricted.have_questions', lang) }}</div>
+            <p class="text-secondary text-sm">
+                {{ t('age_restricted.questions_text', lang) }}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons (NO request access for age-restricted) -->
+<div class="action-buttons">
+    <button class="btn btn-primary" onclick="history.back()">
+        {{ t('common.go_back', lang) }}
+    </button>
+    <button class="btn btn-ghost" onclick="showReportForm()">
+        {{ t('age_restricted.report_site', lang) }}
+    </button>
+</div>
+
+<!-- Report Form (for reporting inappropriate content) -->
+<div id="report-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">{{ t('report.title_site', lang) }}</h3>
+    <p class="text-secondary mb-4" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+        {{ t('report.what_happened', lang) }}
+    </p>
+    <form onsubmit="submitReport(event)">
+        <div class="form-group">
+            <label class="form-label" for="report-reason">{{ t('report.what_happened', lang) }}</label>
+            <textarea
+                class="form-textarea"
+                id="report-reason"
+                name="report-reason"
+                rows="3"
+                required
+                placeholder="{{ t('report.placeholder_site', lang) }}"></textarea>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                {{ t('report.submit_report', lang) }}
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideReportForm()">
+                {{ t('common.cancel', lang) }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Message -->
+<div id="report-success" style="display: none;" class="alert alert-success mt-6">
+    <strong>{{ t('report.success', lang) }}</strong> {{ t('report.success_message', lang) }}
+</div>
+
+<!-- Error Message -->
+<div id="error-message" style="display: none;" class="alert alert-error mt-6">
+    <strong>{{ t('access_request.error', lang) }}:</strong> <span id="error-text"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Report Form
+    function showReportForm() {
+        document.getElementById('report-form').style.display = 'block';
+        document.getElementById('report-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideReportForm() {
+        document.getElementById('report-form').style.display = 'none';
+    }
+
+    // Submit Report
+    async function submitReport(event) {
+        event.preventDefault();
+
+        const reportReason = document.getElementById('report-reason').value;
+
+        try {
+            const response = await fetch('/api/report-site', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    type: 'age_restricted',
+                    reason: reportReason
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideReportForm();
+                document.getElementById('report-success').style.display = 'block';
+                document.getElementById('report-success').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
+            }
+        } catch (error) {
+            showError('{{ t("access_request.network_error", lang) }}');
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('error-text').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').scrollIntoView({ behavior: 'smooth' });
+
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            document.getElementById('error-message').style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}

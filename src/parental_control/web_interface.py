@@ -99,6 +99,19 @@ else:
 DB_PATH = Path('/var/lib/ubuntu-parental/control.json')
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+# Initialize i18n (internationalization) support
+try:
+    from .i18n import init_i18n_for_flask
+    init_i18n_for_flask(app)
+    logging.info("i18n initialized successfully")
+except ImportError:
+    try:
+        from parental_control.i18n import init_i18n_for_flask
+        init_i18n_for_flask(app)
+        logging.info("i18n initialized successfully")
+    except Exception as e:
+        logging.warning(f"Could not initialize i18n: {e}")
+
 # Add custom Jinja2 filters
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
@@ -1116,18 +1129,226 @@ def update_daily_limit():
 
 @app.route('/blocked')
 def blocked():
-    """Display blocked page for restricted content"""
+    """Display enhanced blocked page for restricted content"""
     # Get parameters from URL
     blocked_url = request.args.get('url', 'Unknown URL')
     block_reason = request.args.get('reason', 'Content blocked by parental control')
     block_category = request.args.get('category', '')
-    time_restriction = request.args.get('time_restriction', '')
-    
-    return render_template('blocked.html',
-                         blocked_url=blocked_url,
-                         block_reason=block_reason,
-                         block_category=block_category,
-                         time_restriction=time_restriction)
+    block_type = request.args.get('type', '')  # time_restriction, category, manual, age_restricted
+
+    # Get admin's default language from database
+    try:
+        db = get_db_connection()
+        default_lang = db.get_default_language()
+        db.close()
+    except Exception as e:
+        logging.error(f"Error getting default language: {e}")
+        default_lang = 'he'  # Fallback to Hebrew
+
+    # Get language from query parameter or use admin's default
+    lang = request.args.get('lang', default_lang)
+    if lang not in ['he', 'en']:
+        lang = default_lang  # Fallback to admin's default
+
+    # Get language direction (RTL for Hebrew, LTR for English)
+    lang_direction = 'rtl' if lang == 'he' else 'ltr'
+
+    # Default template data
+    template_data = {
+        'blocked_url': blocked_url,
+        'block_reason': block_reason,
+        'category': block_category,
+        'theme': 'default',  # Can be customized later
+        'current_year': datetime.now().year,
+        'allow_request_access': True,
+        'lang': lang,
+        'lang_direction': lang_direction
+    }
+
+    # Import i18n for translations
+    try:
+        from .i18n import get_i18n
+        i18n = get_i18n()
+    except ImportError:
+        from parental_control.i18n import get_i18n
+        i18n = get_i18n()
+
+    # Determine which template to use based on block type or reason
+    if block_type == 'time_restriction' or 'time' in block_reason.lower() or 'schedule' in block_reason.lower():
+        # Time-restricted blocking - Get translated activities
+        template_data.update({
+            'restriction_reason': block_reason,
+            'suggested_activities': [
+                i18n.get_translation(lang, 'time_restricted.activities.read_book'),
+                i18n.get_translation(lang, 'time_restricted.activities.play_outside'),
+                i18n.get_translation(lang, 'time_restricted.activities.practice_instrument'),
+                i18n.get_translation(lang, 'time_restricted.activities.work_homework'),
+                i18n.get_translation(lang, 'time_restricted.activities.family_time')
+            ],
+            'schedule': [
+                {'day': 'Monday-Friday', 'time': '4:00 PM - 8:00 PM'},
+                {'day': 'Saturday-Sunday', 'time': '9:00 AM - 9:00 PM'}
+            ]
+        })
+        return render_template('blocked/time_restricted.html', **template_data)
+
+    elif block_type == 'manual' or block_category == 'MANUAL':
+        # Manual blocking (parent-specific)
+        template_data.update({
+            'custom_message': 'This website has been specifically blocked. Please ask your parent or guardian if you have questions.',
+            'parent_name': 'your parent',
+        })
+        return render_template('blocked/manual_block.html', **template_data)
+
+    elif block_type == 'age_restricted' or 'age' in block_reason.lower():
+        # Age-restricted content
+        template_data.update({
+            'age_requirement': '18',
+            'allow_request_access': False,  # No request access for age-restricted
+        })
+        return render_template('blocked/age_restricted.html', **template_data)
+
+    else:
+        # Category-based blocking (default) - Get translated category info
+        category_colors = {
+            'SOCIAL_MEDIA': 'rgba(236, 72, 153, 0.1)',
+            'VIDEO': 'rgba(139, 92, 246, 0.1)',
+            'GAMING': 'rgba(245, 158, 11, 0.1)',
+            'ADULT': 'rgba(220, 38, 38, 0.1)'
+        }
+
+        # Get translated category name and description
+        category_key = f'category_blocked.categories.{block_category}' if block_category else 'category_blocked.categories.MANUAL'
+        category_name = i18n.get_translation(lang, f'{category_key}.name', 'Restricted Category')
+        category_description = i18n.get_translation(lang, f'{category_key}.description', '')
+
+        template_data.update({
+            'category_name': category_name,
+            'category_description': category_description,
+            'category_color': category_colors.get(block_category, 'rgba(99, 102, 241, 0.1)'),
+            'alternatives': [
+                {
+                    'name': i18n.get_translation(lang, 'alternatives.khan_academy.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.khan_academy.description'),
+                    'url': 'https://www.khanacademy.org'
+                },
+                {
+                    'name': i18n.get_translation(lang, 'alternatives.scratch.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.scratch.description'),
+                    'url': 'https://scratch.mit.edu'
+                },
+                {
+                    'name': i18n.get_translation(lang, 'alternatives.nasa_kids.name'),
+                    'description': i18n.get_translation(lang, 'alternatives.nasa_kids.description'),
+                    'url': 'https://www.nasa.gov/kidsclub'
+                }
+            ],
+            'educational_tip': i18n.get_translation(lang, 'category_blocked.tip_default')
+        })
+        return render_template('blocked/category_blocked.html', **template_data)
+
+# =============================================================================
+# Blocked Page API Endpoints
+# =============================================================================
+
+@app.route('/api/request-access', methods=['POST'])
+def api_request_access():
+    """Handle access request from blocked page"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['url', 'reason', 'duration']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate reason length
+        reason = data['reason'].strip()
+        if len(reason) < 20:
+            return jsonify({'error': 'Reason must be at least 20 characters'}), 400
+        if len(reason) > 500:
+            return jsonify({'error': 'Reason must be less than 500 characters'}), 400
+
+        # Validate duration
+        duration = data['duration']
+        allowed_durations = [15, 30, 60, 120]
+        if duration not in allowed_durations:
+            return jsonify({'error': f'Duration must be one of: {allowed_durations}'}), 400
+
+        # Log the request (in a real implementation, this would save to database)
+        logging.info(f"Access request received: URL={data['url']}, Reason={reason[:50]}..., Duration={duration}min")
+
+        # TODO: Save to database table 'access_requests'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Your request has been sent to your parent or guardian',
+            'request_id': secrets.token_hex(8)
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling access request: {e}")
+        return jsonify({'error': 'An error occurred processing your request'}), 500
+
+@app.route('/api/report-block', methods=['POST'])
+def api_report_block():
+    """Handle report of incorrect block"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if 'url' not in data or 'reason' not in data:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        reason = data['reason'].strip()
+        if not reason:
+            return jsonify({'error': 'Please provide a reason'}), 400
+
+        # Log the report (in a real implementation, this would save to database)
+        logging.info(f"Block report received: URL={data['url']}, Reason={reason[:50]}...")
+
+        # TODO: Save to database table 'user_feedback'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your report'
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling block report: {e}")
+        return jsonify({'error': 'An error occurred processing your report'}), 500
+
+@app.route('/api/report-site', methods=['POST'])
+def api_report_site():
+    """Handle report of inappropriate site"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if 'url' not in data or 'reason' not in data:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        reason = data['reason'].strip()
+        if not reason:
+            return jsonify({'error': 'Please provide a description'}), 400
+
+        # Log the report
+        logging.info(f"Site report received: URL={data['url']}, Type={data.get('type', 'unknown')}")
+
+        # TODO: Save to database table 'user_feedback'
+        # For now, just return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for the report'
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error handling site report: {e}")
+        return jsonify({'error': 'An error occurred processing your report'}), 500
 
 @app.route('/help')
 @login_required
@@ -1141,6 +1362,55 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('login'))
 
+@app.route('/settings')
+@login_required
+def settings():
+    """Display admin settings page"""
+    try:
+        db = get_db_connection()
+        default_language = db.get_default_language()
+        db.close()
+
+        return render_template('settings.html',
+                             default_language=default_language,
+                             current_page='settings')
+    except Exception as e:
+        logging.error(f"Error loading settings: {e}")
+        flash(f'Error loading settings: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/update_language_setting', methods=['POST'])
+@login_required
+def update_language_setting():
+    """Update the default language for blocking pages"""
+    try:
+        new_language = request.form.get('default_language', '').strip()
+
+        if not new_language:
+            flash('Please select a language', 'danger')
+            return redirect(url_for('settings'))
+
+        if new_language not in ['he', 'en']:
+            flash('Invalid language selection', 'danger')
+            return redirect(url_for('settings'))
+
+        db = get_db_connection()
+        success = db.set_default_language(new_language)
+        db.close()
+
+        if success:
+            language_name = 'Hebrew (עברית)' if new_language == 'he' else 'English'
+            flash(f'Default language updated to {language_name}', 'success')
+            logging.info(f"Admin changed default language to: {new_language}")
+        else:
+            flash('Failed to update language setting', 'danger')
+
+    except Exception as e:
+        logging.error(f"Error updating language setting: {e}")
+        flash(f'Error updating language: {str(e)}', 'danger')
+
+    return redirect(url_for('settings'))
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -1150,26 +1420,26 @@ def change_password():
             current_password = request.form.get('current_password', '').strip()
             new_password = request.form.get('new_password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
-            
+
             if not all([current_password, new_password, confirm_password]):
                 flash('All fields are required', 'danger')
                 return render_template('change_password.html')
-            
+
             if new_password != confirm_password:
                 flash('New passwords do not match', 'danger')
                 return render_template('change_password.html')
-            
+
             if len(new_password) < 4:
                 flash('New password must be at least 4 characters', 'danger')
                 return render_template('change_password.html')
-            
+
             control = ParentalControl()
-            
+
             # Verify current password
             if not control.verify_password(current_password):
                 flash('Current password is incorrect', 'danger')
                 return render_template('change_password.html')
-            
+
             # Set new password
             if control.set_password(new_password):
                 flash('Password changed successfully', 'success')
@@ -1177,11 +1447,11 @@ def change_password():
                 return redirect(url_for('index'))
             else:
                 flash('Failed to change password', 'danger')
-                
+
         except Exception as e:
             logging.error(f"Error changing password: {e}")
             flash(f'Error changing password: {str(e)}', 'danger')
-    
+
     return render_template('change_password.html', current_page='settings')
 
 # =============================================================================

@@ -58,8 +58,15 @@ class ParentalControlDB:
                 'id': 1,
                 'daily_limit_minutes': None,
                 'protection_active': True,
+                'default_language': 'he',  # Hebrew is default
                 'created_at': datetime.now().isoformat()
             })
+        else:
+            # Migrate existing settings to include default_language if missing
+            settings = self.settings.all()
+            if settings and 'default_language' not in settings[0]:
+                Setting = Query()
+                self.settings.update({'default_language': 'he'}, Setting.id == 1)
         
         # Initialize default DNS settings if empty
         if not self.dns_settings.all():
@@ -397,11 +404,25 @@ class ParentalControlDB:
                 else:
                     updates['id'] = 1
                     self.settings.insert(updates)
+                # Force flush to disk
+                self.db.storage.flush()
                 return True
             except Exception as e:
                 logger.error(f"Error updating settings: {e}")
                 return False
-    
+
+    def get_default_language(self) -> str:
+        """Get the default language for blocking pages."""
+        settings = self.get_settings()
+        return settings.get('default_language', 'he')  # Hebrew is default
+
+    def set_default_language(self, language: str) -> bool:
+        """Set the default language for blocking pages."""
+        if language not in ['he', 'en']:
+            logger.error(f"Invalid language: {language}")
+            return False
+        return self.update_settings(default_language=language)
+
     # Blacklist Management
     def add_blacklist_category(self, name: str, is_active: bool = True) -> bool:
         """Add or update a blacklist category."""

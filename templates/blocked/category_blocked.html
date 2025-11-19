@@ -1,0 +1,299 @@
+{% extends "blocked/base_blocked.html" %}
+
+{% block title %}{{ t('category_blocked.title', lang) }}{% endblock %}
+
+{% block content %}
+<!-- Icon (color varies by category) -->
+<div class="icon-container icon-category icon-container-lg blocked-icon-large" style="{% if category_color %}background-color: {{ category_color }}; color: white;{% endif %}">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+</div>
+
+<!-- Title -->
+<h1 class="blocked-title">{{ t('category_blocked.title', lang) }}</h1>
+
+<!-- Category Badge -->
+{% if category_name %}
+<div class="mb-4">
+    <span class="badge badge-blocked">{{ category_name }}</span>
+</div>
+{% endif %}
+
+<!-- Blocked Domain -->
+<div class="blocked-domain">{{ blocked_url }}</div>
+
+<!-- Message -->
+<div class="blocked-message">
+    {% if block_reason %}
+        {{ block_reason }}
+    {% else %}
+        {{ category_description if category_description else t('category_blocked.categories.' + category + '.description', lang) }}
+    {% endif %}
+</div>
+
+<!-- Why is this blocked? (Expandable) -->
+<details class="card card-info mt-6" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+    <summary style="cursor: pointer; font-weight: 600; padding: var(--space-2);">
+        {{ t('category_blocked.why_blocked', lang) }}
+    </summary>
+    <div class="mt-4">
+        <p class="text-secondary">
+            {{ t('category_blocked.why_blocked_text', lang) }}
+        </p>
+        <ul class="list-disc mt-4">
+            <li>{{ t('category_blocked.reasons.stay_focused', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.avoid_distracting', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.healthy_habits', lang) }}</li>
+            <li>{{ t('category_blocked.reasons.protect_privacy', lang) }}</li>
+        </ul>
+    </div>
+</details>
+
+<!-- Alternative Suggestions -->
+{% if alternatives %}
+<div class="card mt-6">
+    <div class="card-title">{{ t('category_blocked.try_instead', lang) }}</div>
+    <p class="text-secondary mb-4">{{ t('category_blocked.alternatives_text', lang) }}</p>
+
+    <div class="alternatives-grid">
+        {% for alt in alternatives %}
+        <a href="{{ alt.url }}" target="_blank" class="alternative-item" style="text-decoration: none;">
+            <div class="alternative-name">{{ alt.name }}</div>
+            <div class="alternative-description">{{ alt.description }}</div>
+            <span class="alternative-link">{{ '←' if lang_direction == 'rtl' else '→' }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Educational Content -->
+{% if educational_tip %}
+<div class="card card-info mt-6">
+    <div style="display: flex; gap: var(--space-4); align-items: start; {% if lang_direction == 'rtl' %}flex-direction: row-reverse;{% endif %}">
+        <div style="font-size: 2rem;">💡</div>
+        <div style="flex: 1; text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+            <div class="font-semibold mb-2">{{ t('category_blocked.educational_tip', lang) }}</div>
+            <p class="text-secondary">{{ educational_tip }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="action-buttons">
+    {% if allow_request_access %}
+    <button class="btn btn-primary" onclick="showRequestAccessForm()">
+        {{ t('time_restricted.request_access', lang) }}
+    </button>
+    {% endif %}
+    <button class="btn btn-ghost" onclick="showReportForm()">
+        {{ t('category_blocked.report_error', lang) }}
+    </button>
+    <button class="btn btn-secondary" onclick="history.back()">
+        {{ t('common.go_back', lang) }}
+    </button>
+</div>
+
+<!-- Request Access Form -->
+<div id="request-access-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">{{ t('access_request.title', lang) }}</h3>
+    <form onsubmit="submitAccessRequest(event)">
+        <div class="form-group">
+            <label class="form-label" for="reason">{{ t('access_request.why_need', lang) }}</label>
+            <textarea
+                class="form-textarea"
+                id="reason"
+                name="reason"
+                rows="4"
+                required
+                minlength="20"
+                maxlength="500"
+                placeholder="{{ t('access_request.reason_placeholder', lang) }}"></textarea>
+            <span class="form-help">
+                <span id="char-count">0</span> / 500 {{ t('access_request.char_count', lang) }}
+            </span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="duration">{{ t('access_request.how_long', lang) }}</label>
+            <select class="form-select" id="duration" name="duration" required>
+                <option value="15">{{ t('access_request.duration_15', lang) }}</option>
+                <option value="30">{{ t('access_request.duration_30', lang) }}</option>
+                <option value="60">{{ t('access_request.duration_60', lang) }}</option>
+                <option value="120">{{ t('access_request.duration_120', lang) }}</option>
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                {{ t('access_request.send_request', lang) }}
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideRequestAccessForm()">
+                {{ t('common.cancel', lang) }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Report Error Form -->
+<div id="report-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">{{ t('report.title_incorrect', lang) }}</h3>
+    <p class="text-secondary mb-4">{{ t('report.why_incorrect', lang) }}</p>
+    <form onsubmit="submitReport(event)">
+        <div class="form-group">
+            <label class="form-label" for="report-reason">{{ t('report.why_incorrect', lang) }}</label>
+            <textarea
+                class="form-textarea"
+                id="report-reason"
+                name="report-reason"
+                rows="3"
+                required
+                placeholder="{{ t('report.placeholder', lang) }}"></textarea>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                {{ t('report.submit_report', lang) }}
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideReportForm()">
+                {{ t('common.cancel', lang) }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Messages -->
+<div id="success-message" style="display: none;" class="alert alert-success mt-6">
+    <strong>{{ t('access_request.success', lang) }}</strong> {{ t('access_request.success_message', lang) }}
+</div>
+
+<div id="report-success" style="display: none;" class="alert alert-success mt-6">
+    <strong>{{ t('report.success', lang) }}</strong> {{ t('report.success_message', lang) }}
+</div>
+
+<!-- Error Message -->
+<div id="error-message" style="display: none;" class="alert alert-error mt-6">
+    <strong>{{ t('access_request.error', lang) }}:</strong> <span id="error-text"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Request Access Form
+    function showRequestAccessForm() {
+        hideReportForm();
+        document.getElementById('request-access-form').style.display = 'block';
+        document.getElementById('request-access-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'none';
+    }
+
+    // Report Form
+    function showReportForm() {
+        hideRequestAccessForm();
+        document.getElementById('report-form').style.display = 'block';
+        document.getElementById('report-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideReportForm() {
+        document.getElementById('report-form').style.display = 'none';
+    }
+
+    // Character Counter
+    const reasonField = document.getElementById('reason');
+    if (reasonField) {
+        reasonField.addEventListener('input', function() {
+            document.getElementById('char-count').textContent = this.value.length;
+        });
+    }
+
+    // Submit Access Request
+    async function submitAccessRequest(event) {
+        event.preventDefault();
+
+        const reason = document.getElementById('reason').value;
+        const duration = document.getElementById('duration').value;
+
+        if (reason.length < 20) {
+            showError('{{ t("access_request.min_chars_error", lang) }}');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/request-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    reason: reason,
+                    duration: parseInt(duration),
+                    category: '{{ category }}',
+                    block_type: 'category'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideRequestAccessForm();
+                document.getElementById('success-message').style.display = 'block';
+                document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
+            }
+        } catch (error) {
+            showError('{{ t("access_request.network_error", lang) }}');
+        }
+    }
+
+    // Submit Report
+    async function submitReport(event) {
+        event.preventDefault();
+
+        const reportReason = document.getElementById('report-reason').value;
+
+        try {
+            const response = await fetch('/api/report-block', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    category: '{{ category }}',
+                    reason: reportReason
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideReportForm();
+                document.getElementById('report-success').style.display = 'block';
+                document.getElementById('report-success').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
+            }
+        } catch (error) {
+            showError('{{ t("access_request.network_error", lang) }}');
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('error-text').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').scrollIntoView({ behavior: 'smooth' });
+
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            document.getElementById('error-message').style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}

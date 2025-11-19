@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h2 class="mb-4">
+            <i class="bi bi-gear me-2"></i>Admin Settings
+        </h2>
+
+        <!-- Language Settings Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-translate me-2"></i>Blocking Page Language
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Set the default language for blocked pages shown to users. Users can still change the language using the selector on the blocked page.
+                </p>
+                <form method="POST" action="{{ url_for('update_language_setting') }}">
+                    <div class="mb-3">
+                        <label for="default_language" class="form-label">Default Language</label>
+                        <select class="form-select" id="default_language" name="default_language" required>
+                            <option value="he" {% if default_language == 'he' %}selected{% endif %}>
+                                עברית (Hebrew)
+                            </option>
+                            <option value="en" {% if default_language == 'en' %}selected{% endif %}>
+                                English
+                            </option>
+                        </select>
+                        <div class="form-text">
+                            This language will be used by default when showing blocked pages to users.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Language Setting
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Security Settings Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-lock me-2"></i>Security
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 class="mb-3">Change Admin Password</h6>
+                <p class="text-muted">
+                    Update your admin password for accessing the parental control panel.
+                </p>
+                <a href="{{ url_for('change_password') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-key me-1"></i>Change Password
+                </a>
+            </div>
+        </div>
+
+        <!-- System Information Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th style="width: 40%;">Admin Panel Language</th>
+                            <td>English (currently fixed)</td>
+                        </tr>
+                        <tr>
+                            <th>Blocking Pages Language</th>
+                            <td>
+                                {% if default_language == 'he' %}
+                                עברית (Hebrew)
+                                {% else %}
+                                English
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Supported Languages</th>
+                            <td>Hebrew (עברית), English</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info mt-3" role="alert">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <strong>Future Enhancement:</strong> Multi-language support for the admin panel is planned for a future release.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links Sidebar -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Links</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('index') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+                <a href="{{ url_for('dns_settings') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-hdd-network me-2"></i>DNS Settings
+                </a>
+                <a href="{{ url_for('categories') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock me-2"></i>Category Blocking
+                </a>
+                <a href="{{ url_for('time_management') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-clock me-2"></i>Time Management
+                </a>
+                <a href="{{ url_for('help') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-question-circle me-2"></i>Help
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

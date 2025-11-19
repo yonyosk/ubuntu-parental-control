@@ -1,0 +1,245 @@
+{% extends "blocked/base_blocked.html" %}
+
+{% block title %}{{ t('time_restricted.title', lang) }}{% endblock %}
+
+{% block content %}
+<!-- Icon -->
+<div class="icon-container icon-time icon-container-lg blocked-icon-large">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+</div>
+
+<!-- Title -->
+<h1 class="blocked-title">{{ t('time_restricted.title', lang) }}</h1>
+
+<!-- Blocked Domain -->
+<div class="blocked-domain">{{ blocked_url }}</div>
+
+<!-- Message -->
+<div class="blocked-message">
+    {% if restriction_reason %}
+        {{ restriction_reason }}
+    {% else %}
+        {{ t('time_restricted.message_default', lang) }}
+    {% endif %}
+</div>
+
+<!-- Countdown Timer (if next_available_time is provided) -->
+{% if next_available_time %}
+<div class="card card-info">
+    <div class="card-title">{{ t('time_restricted.access_available_in', lang) }}</div>
+    <div class="countdown" id="countdown">
+        <div class="countdown-item">
+            <div class="countdown-value" id="hours">--</div>
+            <div class="countdown-label">{{ t('time_restricted.countdown.hours', lang) }}</div>
+        </div>
+        <div class="countdown-item">
+            <div class="countdown-value" id="minutes">--</div>
+            <div class="countdown-label">{{ t('time_restricted.countdown.minutes', lang) }}</div>
+        </div>
+        <div class="countdown-item">
+            <div class="countdown-value" id="seconds">--</div>
+            <div class="countdown-label">{{ t('time_restricted.countdown.seconds', lang) }}</div>
+        </div>
+    </div>
+    <p class="text-sm text-secondary mt-4">
+        {{ t('time_restricted.next_available', lang) }}: <strong id="next-time">{{ next_available_time }}</strong>
+    </p>
+</div>
+{% endif %}
+
+<!-- Schedule Display -->
+{% if schedule %}
+<div class="card mt-6">
+    <div class="card-title">{{ t('time_restricted.your_schedule', lang) }}</div>
+    <div class="schedule-grid">
+        {% for item in schedule %}
+        <div class="schedule-item">
+            <span class="schedule-day">{{ item.day }}</span>
+            <span class="schedule-time">{{ item.time }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Suggested Activities -->
+{% if suggested_activities %}
+<div class="card mt-6">
+    <div class="card-title">{{ t('time_restricted.while_you_wait', lang) }}</div>
+    <p class="text-secondary mb-4">{{ t('time_restricted.suggestions_text', lang) }}</p>
+    <ul class="list-disc" style="text-align: {{ 'right' if lang_direction == 'rtl' else 'left' }};">
+        {% for activity in suggested_activities %}
+        <li>{{ activity }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="action-buttons">
+    {% if allow_request_access %}
+    <button class="btn btn-primary" onclick="showRequestAccessForm()">
+        {{ t('time_restricted.request_access', lang) }}
+    </button>
+    {% endif %}
+    <button class="btn btn-secondary" onclick="history.back()">
+        {{ t('common.go_back', lang) }}
+    </button>
+</div>
+
+<!-- Hidden Request Access Form -->
+<div id="request-access-form" style="display: none;" class="card mt-6">
+    <h3 class="card-title">{{ t('access_request.title', lang) }}</h3>
+    <form onsubmit="submitAccessRequest(event)">
+        <div class="form-group">
+            <label class="form-label" for="reason">{{ t('access_request.why_need', lang) }}</label>
+            <textarea
+                class="form-textarea"
+                id="reason"
+                name="reason"
+                rows="4"
+                required
+                minlength="20"
+                maxlength="500"
+                placeholder="{{ t('access_request.reason_placeholder', lang) }}"></textarea>
+            <span class="form-help">
+                <span id="char-count">0</span> / 500 {{ t('access_request.char_count', lang) }}
+            </span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="duration">{{ t('access_request.how_long', lang) }}</label>
+            <select class="form-select" id="duration" name="duration" required>
+                <option value="15">{{ t('access_request.duration_15', lang) }}</option>
+                <option value="30">{{ t('access_request.duration_30', lang) }}</option>
+                <option value="60">{{ t('access_request.duration_60', lang) }}</option>
+                <option value="120">{{ t('access_request.duration_120', lang) }}</option>
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+                {{ t('access_request.send_request', lang) }}
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="hideRequestAccessForm()">
+                {{ t('common.cancel', lang) }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Message -->
+<div id="success-message" style="display: none;" class="alert alert-success mt-6">
+    <strong>{{ t('access_request.success', lang) }}</strong> {{ t('access_request.success_message', lang) }}
+</div>
+
+<!-- Error Message -->
+<div id="error-message" style="display: none;" class="alert alert-error mt-6">
+    <strong>{{ t('access_request.error', lang) }}:</strong> <span id="error-text"></span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Countdown Timer
+    {% if next_available_timestamp %}
+    const targetTime = {{ next_available_timestamp }};
+
+    function updateCountdown() {
+        const now = Math.floor(Date.now() / 1000);
+        const diff = targetTime - now;
+
+        if (diff <= 0) {
+            // Time's up! Reload the page
+            location.reload();
+            return;
+        }
+
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = diff % 60;
+
+        document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+    }
+
+    // Update immediately and then every second
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    {% endif %}
+
+    // Request Access Form
+    function showRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'block';
+        document.getElementById('request-access-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideRequestAccessForm() {
+        document.getElementById('request-access-form').style.display = 'none';
+    }
+
+    // Character Counter
+    const reasonField = document.getElementById('reason');
+    if (reasonField) {
+        reasonField.addEventListener('input', function() {
+            document.getElementById('char-count').textContent = this.value.length;
+        });
+    }
+
+    // Submit Access Request
+    async function submitAccessRequest(event) {
+        event.preventDefault();
+
+        const reason = document.getElementById('reason').value;
+        const duration = document.getElementById('duration').value;
+
+        if (reason.length < 20) {
+            showError('{{ t("access_request.min_chars_error", lang) }}');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/request-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: '{{ blocked_url }}',
+                    reason: reason,
+                    duration: parseInt(duration),
+                    category: '{{ category }}',
+                    block_type: 'time_restriction'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                hideRequestAccessForm();
+                document.getElementById('success-message').style.display = 'block';
+                document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showError(data.error || '{{ t("access_request.network_error", lang) }}');
+            }
+        } catch (error) {
+            showError('{{ t("access_request.network_error", lang) }}');
+        }
+    }
+
+    function showError(message) {
+        document.getElementById('error-text').textContent = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-message').scrollIntoView({ behavior: 'smooth' });
+
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            document.getElementById('error-message').style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}
