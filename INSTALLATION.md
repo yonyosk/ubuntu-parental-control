@@ -99,7 +99,7 @@ sudo systemctl enable ubuntu-parental-control
 
 Run the diagnostic script:
 ```bash
-sudo ./verify_installation.sh
+sudo ./tools/verify_installation.sh
 ```
 
 This will check:

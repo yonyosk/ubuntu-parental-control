@@ -166,7 +166,7 @@ The time enforcement daemon is integrated into the main service (`start_service.
 Tests that iptables rules correctly block/unblock internet:
 
 ```bash
-sudo python3 test_network_enforcement.py test
+sudo python3 tests/test_network_enforcement.py test
 ```
 
 This will:
@@ -181,7 +181,7 @@ This will:
 Check if enforcement is currently active:
 
 ```bash
-sudo python3 test_network_enforcement.py status
+sudo python3 tests/test_network_enforcement.py status
 ```
 
 Shows:
@@ -194,14 +194,14 @@ Shows:
 Remove all enforcement rules:
 
 ```bash
-sudo python3 test_network_enforcement.py cleanup
+sudo python3 tests/test_network_enforcement.py cleanup
 ```
 
 ### Test 4: Full Integration Test
 
 1. Add a time schedule that blocks current time:
 ```bash
-sudo python3 test_time_restrictions.py
+sudo python3 tests/test_time_restrictions.py
 # Choose option 3: Add test schedule (blocks current time)
 ```
 
@@ -327,12 +327,12 @@ sudo journalctl -u ubuntu-parental-control -n 50 | grep "enforcement"
 
 **Check 3: Are iptables rules applied?**
 ```bash
-sudo python3 test_network_enforcement.py status
+sudo python3 tests/test_network_enforcement.py status
 ```
 
 **Check 4: Are time restrictions configured?**
 ```bash
-sudo python3 test_time_restrictions.py
+sudo python3 tests/test_time_restrictions.py
 # Choose option 1: Show current status
 ```
 
@@ -345,7 +345,7 @@ date
 
 **Check 2: What are the schedules?**
 ```bash
-sudo python3 test_time_restrictions.py
+sudo python3 tests/test_time_restrictions.py
 # Choose option 2: Show all schedules
 ```
 
@@ -371,7 +371,7 @@ sudo systemctl start ubuntu-parental-control
 
 ```bash
 # Manual cleanup
-sudo python3 test_network_enforcement.py cleanup
+sudo python3 tests/test_network_enforcement.py cleanup
 
 # Or manually:
 sudo iptables -D OUTPUT -j PARENTAL_CONTROL
@@ -402,8 +402,8 @@ sudo iptables -X PARENTAL_CONTROL
 - `src/parental_control/time_enforcer.py` - Time enforcement daemon
 - `src/parental_control/time_management.py` - Time restriction logic
 - `start_service.sh` - Service startup script
-- `test_network_enforcement.py` - Network enforcement tests
-- `test_time_restrictions.py` - Time restriction tests
+- `tests/test_network_enforcement.py` - Network enforcement tests
+- `tests/test_time_restrictions.py` - Time restriction tests
 
 ## References
 

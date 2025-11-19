@@ -9,7 +9,7 @@ echo ""
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
     echo "❌ ERROR: This script must be run as root"
-    echo "   Run: sudo ./diagnose_and_fix.sh"
+    echo "   Run: sudo ./tools/diagnose_and_fix.sh"
     exit 1
 fi
 

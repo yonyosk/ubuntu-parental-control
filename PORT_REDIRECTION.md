@@ -112,7 +112,7 @@ redirector.cleanup()
 Run the comprehensive test suite:
 
 ```bash
-sudo python3 test_port_redirection.py
+sudo python3 tests/test_port_redirection.py
 ```
 
 This tests:
