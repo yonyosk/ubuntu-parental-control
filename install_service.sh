@@ -38,6 +38,45 @@ fi
 echo "✓ Package system clean"
 echo ""
 
+# Setup Root CA for HTTPS blocking (if not already present)
+echo "Checking for Root CA certificate..."
+CA_CERT="/opt/ubuntu-parental-control/certs/ca.crt"
+CA_KEY="/opt/ubuntu-parental-control/certs/ca.key"
+
+if [ -f "$CA_CERT" ] && [ -f "$CA_KEY" ]; then
+    echo "   ✓ Root CA already exists, skipping..."
+else
+    echo "   - Setting up Root CA for HTTPS blocking..."
+
+    # Create certificate directory
+    mkdir -p /opt/ubuntu-parental-control/certs
+
+    # Generate Root CA private key
+    openssl genrsa -out "$CA_KEY" 4096 2>/dev/null
+
+    # Generate Root CA certificate
+    openssl req -x509 -new -nodes -key "$CA_KEY" -sha256 -days 3650 \
+        -out "$CA_CERT" \
+        -subj "/C=IL/ST=Israel/L=Tel Aviv/O=Ubuntu Parental Control/OU=Root CA/CN=Ubuntu Parental Control Root CA" \
+        2>/dev/null
+
+    # Install as trusted certificate
+    cp "$CA_CERT" /usr/local/share/ca-certificates/ubuntu-parental-control-ca.crt
+    update-ca-certificates >/dev/null 2>&1
+
+    # Set permissions
+    chmod 600 "$CA_KEY"
+    chmod 644 "$CA_CERT"
+
+    echo "   ✓ Root CA created and installed"
+    echo ""
+    echo "   NOTE: For Firefox users, manually import the CA certificate:"
+    echo "   1. Firefox Settings → Privacy & Security → Certificates → View Certificates"
+    echo "   2. Authorities → Import → Select: $CA_CERT"
+    echo "   3. Check 'Trust this CA to identify websites'"
+    echo ""
+fi
+
 # Install location
 INSTALL_DIR="/opt/ubuntu-parental-control"
 SERVICE_FILE="/etc/systemd/system/ubuntu-parental-control.service"

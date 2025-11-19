@@ -12,6 +12,8 @@ Ubuntu Parental Control is a comprehensive web-based application that allows par
 - Block website categories using external blacklists (UT1)
 - Support for custom block/allow lists
 - Real-time domain blocking using hosts file
+- **Friendly blocking pages** - Custom Hebrew/English blocking pages instead of connection errors
+- **HTTPS blocking support** - Seamless blocking with dynamic SSL certificate generation
 
 ### Time Management
 - Set daily internet usage limits
@@ -51,9 +53,11 @@ Ubuntu Parental Control is a comprehensive web-based application that allows par
 - 200 MB available disk space
 - Network connectivity
 
-## Installation Methods
+## Installation
 
-### Method 1: Direct Installation (Recommended for Development)
+### Quick Installation (Recommended)
+
+This is the easiest method and sets up everything automatically, including HTTPS blocking with certificate management.
 
 1. Clone the repository:
 ```bash
@@ -64,77 +68,70 @@ cd ubuntu-parental-control
 2. Install system dependencies:
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv sqlite3
+sudo apt-get install -y python3 openssl iptables rsync
 ```
 
-3. Create and activate a virtual environment:
+3. Run the installation script:
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+sudo ./install_service.sh
 ```
 
-4. Install the package in development mode:
+The installation script will automatically:
+- Remove conflicting packages
+- Set up a custom root CA certificate for HTTPS blocking
+- Install the service to `/opt/ubuntu-parental-control`
+- Configure systemd service to start on boot
+- Set up iptables rules for port redirection
+- Install iptables-persistent (optional, for persistence across reboots)
+- Start the service
+
+**Installation time**: ~5 seconds on subsequent installs (first install may take 30 seconds due to package downloads)
+
+### HTTPS Blocking Setup (Optional for Firefox Users)
+
+For seamless HTTPS blocking without certificate warnings in Firefox:
+
+1. Open Firefox → Settings → Privacy & Security → Certificates
+2. Click "View Certificates" → "Authorities" → "Import"
+3. Select: `/opt/ubuntu-parental-control/certs/ca.crt`
+4. Check "Trust this CA to identify websites"
+5. Click OK
+
+**Note**: Chrome and other browsers that use the system certificate store will work automatically without this step.
+
+### Verify Installation
+
+Check that the service is running:
 ```bash
-pip install -e .[dev]
+sudo systemctl status ubuntu-parental-control
 ```
 
-5. Initialize the database:
+Access the admin panel at: http://localhost:5000
+
+Test blocking (if you have blocked sites configured):
 ```bash
-ubuntu-parental-control init
+# HTTP blocking
+curl http://facebook.com
+
+# HTTPS blocking (should work without SSL errors after CA setup)
+curl https://facebook.com
 ```
 
-6. Start the web interface:
+## Upgrading
+
+To upgrade to the latest version:
+
 ```bash
-ubuntu-parental-web
+cd ubuntu-parental-control
+git pull origin main
+sudo ./install_service.sh
 ```
 
-### Method 2: Debian Package Installation (Recommended for Production)
-
-1. Install build dependencies:
-```bash
-sudo apt-get update
-sudo apt-get install -y debhelper python3-all python3-setuptools dh-python
-```
-
-2. Build the Debian package:
-```bash
-dpkg-buildpackage -us -uc
-```
-
-3. Install the generated .deb package:
-```bash
-sudo dpkg -i ../ubuntu-parental-control_*.deb
-sudo apt-get install -f  # Install any missing dependencies
-```
-
-4. Configure the service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ubuntu-parental-web
-sudo systemctl start ubuntu-parental-web
-```
-
-## Upgrading from Previous Versions
-
-1. Backup your configuration:
-```bash
-sudo cp /etc/ubuntu-parental/config.ini /etc/ubuntu-parental/config.ini.bak
-```
-
-2. Install the new version:
-```bash
-sudo dpkg -i ubuntu-parental-control_*.deb
-```
-
-3. Run database migrations (if any):
-```bash
-sudo ubuntu-parental-control migrate
-```
-
-4. Restart the service:
-```bash
-sudo systemctl restart ubuntu-parental-web
-```
+The installation script will:
+- Preserve your existing root CA certificate (if present)
+- Update the service code
+- Restart the service with the new version
+- Keep your database and settings intact
 
 ## Getting Started
 
@@ -279,6 +276,7 @@ This project includes comprehensive documentation for various aspects:
   - [Development Roadmap](docs/features/blocking-page/04_development_roadmap.md)
   - [Database Schema](docs/features/blocking-page/05_database_schema.md)
   - [Risk Mitigation](docs/features/blocking-page/06_risk_mitigation.md)
+- **[HTTPS Blocking Setup](docs/HTTPS_BLOCKING.md)** - Configure HTTPS blocking with dynamic certificates
 
 ### API Documentation
 
