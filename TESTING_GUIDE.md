@@ -24,7 +24,7 @@ Run the automated test script:
 
 ```bash
 cd /home/user/ubuntu-parental-control
-sudo python3 test_time_restrictions.py --auto
+sudo python3 tests/test_time_restrictions.py --auto
 ```
 
 This will:
@@ -39,7 +39,7 @@ This will:
 
 ```bash
 cd /home/user/ubuntu-parental-control
-sudo python3 test_time_restrictions.py
+sudo python3 tests/test_time_restrictions.py
 ```
 
 Then use the menu:
@@ -225,7 +225,7 @@ sudo netstat -tulpn | grep 5000
 **Debug steps:**
 ```bash
 # 1. Check current status
-sudo python3 test_time_restrictions.py
+sudo python3 tests/test_time_restrictions.py
 # Select option 1
 
 # 2. View active schedules
