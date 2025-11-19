@@ -93,7 +93,7 @@ For seamless HTTPS blocking without certificate warnings in Firefox:
 
 1. Open Firefox → Settings → Privacy & Security → Certificates
 2. Click "View Certificates" → "Authorities" → "Import"
-3. Select: `/opt/ubuntu-parental-control/certs/ca.crt`
+3. Select: `ubuntu-parental-control/ca.crt` (in your cloned repository folder)
 4. Check "Trust this CA to identify websites"
 5. Click OK
 

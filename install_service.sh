@@ -69,12 +69,28 @@ else
     chmod 644 "$CA_CERT"
 
     echo "   ✓ Root CA created and installed"
+
+    # Copy certificate to repo directory for easy access
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ]; then
+        cp "$CA_CERT" "$SCRIPT_DIR/ca.crt"
+        chmod 644 "$SCRIPT_DIR/ca.crt"
+        echo "   ✓ Certificate copied to: $SCRIPT_DIR/ca.crt"
+    fi
+
     echo ""
     echo "   NOTE: For Firefox users, manually import the CA certificate:"
     echo "   1. Firefox Settings → Privacy & Security → Certificates → View Certificates"
-    echo "   2. Authorities → Import → Select: $CA_CERT"
+    echo "   2. Authorities → Import → Select: $SCRIPT_DIR/ca.crt"
     echo "   3. Check 'Trust this CA to identify websites'"
     echo ""
+else
+    # Copy certificate to repo directory even if it already exists
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ] && [ ! -f "$SCRIPT_DIR/ca.crt" ]; then
+        cp "$CA_CERT" "$SCRIPT_DIR/ca.crt"
+        chmod 644 "$SCRIPT_DIR/ca.crt"
+    fi
 fi
 
 # Install location

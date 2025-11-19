@@ -96,6 +96,7 @@ $RECYCLE.BIN/
 
 # Security - sensitive files
 *.key
+*.crt
 *.pfx
 *.p12
 *.pem
